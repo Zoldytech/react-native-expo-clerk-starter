@@ -1,16 +1,33 @@
-import { useSignUp } from '@clerk/clerk-expo'
+import { useOAuth, useSignUp } from '@clerk/clerk-expo'
 import { Link, useRouter } from 'expo-router'
 import * as React from 'react'
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
 
 export default function SignUpScreen() {
   const { isLoaded, signUp, setActive } = useSignUp()
+  const { startOAuthFlow } = useOAuth({ strategy: 'oauth_google' })
   const router = useRouter()
 
   const [emailAddress, setEmailAddress] = React.useState('')
   const [password, setPassword] = React.useState('')
   const [pendingVerification, setPendingVerification] = React.useState(false)
   const [code, setCode] = React.useState('')
+
+  // Handle Google OAuth
+  const onGooglePress = async () => {
+    if (!startOAuthFlow) return
+    
+    try {
+      const { createdSessionId, setActive: setActiveFromOAuth } = await startOAuthFlow()
+
+      if (createdSessionId && setActiveFromOAuth) {
+        setActiveFromOAuth({ session: createdSessionId })
+        router.replace('/')
+      }
+    } catch (err) {
+      console.error('Google OAuth error:', err)
+    }
+  }
 
   // Handle submission of sign-up form
   const onSignUpPress = async () => {
@@ -96,6 +113,18 @@ export default function SignUpScreen() {
       <View style={styles.form}>
         <Text style={styles.title}>Create Account</Text>
         
+        {/* Google OAuth Button */}
+        <TouchableOpacity style={styles.googleButton} onPress={onGooglePress}>
+          <Text style={styles.googleButtonText}>🚀 Continue with Google</Text>
+        </TouchableOpacity>
+        
+        {/* Divider */}
+        <View style={styles.divider}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>or</Text>
+          <View style={styles.dividerLine} />
+        </View>
+        
         <TextInput
           style={styles.input}
           autoCapitalize="none"
@@ -127,7 +156,6 @@ export default function SignUpScreen() {
     </View>
   )
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -160,6 +188,35 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 24,
     color: '#666',
+  },
+  googleButton: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  googleButtonText: {
+    color: '#333',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#ddd',
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    color: '#666',
+    fontSize: 14,
   },
   input: {
     borderWidth: 1,
@@ -197,3 +254,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 })
+
