@@ -6,13 +6,14 @@ import {
   View,
   TouchableOpacity,
 } from 'react-native'
-import { useRouter } from 'expo-router'
-import FormInput from '@/components/FormInput'
 
+import { useRouter } from 'expo-router'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { isClerkAPIResponseError, useSignUp } from '@clerk/clerk-expo'
+
+import FormInput from '@/components/FormInput'
 
 // Verification validation schema
 const verifySchema = z.object({

@@ -1,7 +1,8 @@
-import { useAuth } from '@clerk/clerk-expo'
-import { useRouter } from 'expo-router'
 import React from 'react'
 import { TouchableOpacity, Text, Alert } from 'react-native'
+
+import { useRouter } from 'expo-router'
+import { useAuth } from '@clerk/clerk-expo'
 
 const SignOutButton = () => {
   const { signOut } = useAuth()

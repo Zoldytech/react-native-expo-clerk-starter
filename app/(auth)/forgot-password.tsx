@@ -7,13 +7,14 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native'
-import { useRouter } from 'expo-router'
-import FormInput from '@/components/FormInput'
 
+import { useRouter } from 'expo-router'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { isClerkAPIResponseError, useSignIn } from '@clerk/clerk-expo'
+
+import FormInput from '@/components/FormInput'
 
 // Forgot password validation schema
 const forgotPasswordSchema = z.object({

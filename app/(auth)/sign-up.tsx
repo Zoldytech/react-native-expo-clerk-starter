@@ -6,16 +6,17 @@ import {
   View,
   TouchableOpacity,
 } from 'react-native'
+
 import { useRouter } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
-import FormInput from '@/components/FormInput'
-import SignInWith from '@/components/auth/SignInWith'
-import { WEB_URL_TERMS, WEB_URL_PRIVACY } from '@/constants/Config'
-
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { isClerkAPIResponseError, useSignUp } from '@clerk/clerk-expo'
+
+import FormInput from '@/components/FormInput'
+import SignInWith from '@/components/auth/SignInWith'
+import { WEB_URL_TERMS, WEB_URL_PRIVACY } from '@/constants/Config'
 
 // Sign-up validation schema
 const signUpSchema = z.object({

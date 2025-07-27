@@ -1,6 +1,8 @@
-import { SignedIn, SignedOut } from '@clerk/clerk-expo'
-import { Redirect, useRouter } from 'expo-router'
+import React from 'react'
 import { Text, TouchableOpacity, View } from 'react-native'
+
+import { Redirect, useRouter } from 'expo-router'
+import { SignedIn, SignedOut } from '@clerk/clerk-expo'
 
 export default function WelcomeScreen() {
   const router = useRouter()

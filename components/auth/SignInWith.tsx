@@ -1,5 +1,6 @@
 import React, { useEffect, useCallback, useState } from 'react'
 import { TouchableOpacity, Text, Alert } from 'react-native'
+
 import * as WebBrowser from 'expo-web-browser'
 import * as AuthSession from 'expo-auth-session'
 import { useSSO, isClerkAPIResponseError } from '@clerk/clerk-expo'
