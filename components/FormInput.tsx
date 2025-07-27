@@ -28,7 +28,7 @@ export default function FormInput<T extends FieldValues>({
         field: { value, onChange, onBlur },
         fieldState: { error },
       }: any) => (
-        <View className="mb-4">
+        <View>
           {label && (
             <Text className="text-gray-700 text-sm font-medium mb-2">
               {label}

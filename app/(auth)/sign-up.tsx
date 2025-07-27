@@ -168,22 +168,26 @@ export default function SignUpScreen() {
             </View>
           </View>
 
-          <FormInput
-            control={control}
-            name="email"
-            placeholder="Email"
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoComplete="email"
-          />
+          <View className="mb-4">
+            <FormInput
+              control={control}
+              name="email"
+              placeholder="Email"
+              autoCapitalize="none"
+              keyboardType="email-address"
+              autoComplete="email"
+            />
+          </View>
 
-          <FormInput
-            control={control}
-            name="password"
-            placeholder="Password"
-            secureTextEntry
-            autoComplete="new-password"
-          />
+          <View className="mb-4">
+            <FormInput
+              control={control}
+              name="password"
+              placeholder="Password"
+              secureTextEntry
+              autoComplete="new-password"
+            />
+          </View>
 
           {errors.root && (
             <Text className="text-red-500 text-sm text-center mb-4">

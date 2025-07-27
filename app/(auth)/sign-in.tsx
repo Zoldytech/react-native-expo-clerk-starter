@@ -112,23 +112,27 @@ export default function SignInScreen() {
             <View className="flex-1 h-px bg-gray-300" />
           </View>
 
-          <FormInput
-            control={control}
-            name="email"
-            placeholder="Email"
-            autoFocus
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoComplete="email"
-          />
+          <View className="mb-4">
+            <FormInput
+              control={control}
+              name="email"
+              placeholder="Email"
+              autoFocus
+              autoCapitalize="none"
+              keyboardType="email-address"
+              autoComplete="email"
+            />
+          </View>
 
-          <FormInput
-            control={control}
-            name="password"
-            placeholder="Password"
-            secureTextEntry
-            autoComplete="password"
-          />
+          <View className="mb-4">
+            <FormInput
+              control={control}
+              name="password"
+              placeholder="Password"
+              secureTextEntry
+              autoComplete="password"
+            />
+          </View>
 
           {errors.root && (
             <Text className="text-red-500 text-sm text-center mb-4">

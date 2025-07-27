@@ -89,16 +89,18 @@ export default function VerifyScreen() {
             Enter the code below to complete your account setup.
           </Text>
 
-          <FormInput
-            control={control}
-            name="code"
-            placeholder="Enter 6-digit code"
-            keyboardType="number-pad"
-            maxLength={6}
-            autoFocus
-            autoComplete="one-time-code"
-            className="text-center"
-          />
+          <View className="mb-4">
+            <FormInput
+              control={control}
+              name="code"
+              placeholder="Enter 6-digit code"
+              keyboardType="number-pad"
+              maxLength={6}
+              autoFocus
+              autoComplete="one-time-code"
+              className="text-center"
+            />
+          </View>
 
           {errors.root && (
             <Text className="text-red-500 text-sm text-center mb-4">
