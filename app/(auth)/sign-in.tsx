@@ -134,6 +134,12 @@ export default function SignInScreen() {
             />
           </View>
 
+          <View className="flex-row justify-end mb-4">
+            <Pressable onPress={() => router.push('/(auth)/forgot-password' as any)}>
+              <Text className="text-blue-500 text-sm font-semibold">Forgot Password?</Text>
+            </Pressable>
+          </View>
+
           {errors.root && (
             <Text className="text-red-500 text-sm text-center mb-4">
               Invalid email or password
