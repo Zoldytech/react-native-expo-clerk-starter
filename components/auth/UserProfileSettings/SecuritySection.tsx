@@ -17,6 +17,13 @@ interface SecuritySectionProps {
       emailAddress: string
       verification?: { status: string }
     }>
+    primaryEmailAddressId?: string | null
+    phoneNumbers?: Array<{
+      id: string
+      phoneNumber: string
+      verification?: { status: string }
+    }>
+    primaryPhoneNumberId?: string | null
     firstName?: string
     lastName?: string
     imageUrl?: string

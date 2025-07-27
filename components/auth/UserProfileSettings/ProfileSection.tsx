@@ -27,6 +27,7 @@ interface ProfileSectionProps {
       phoneNumber: string
       verification?: { status: string }
     }>
+    primaryPhoneNumberId?: string | null
     externalAccounts?: Array<{
       id: string
       provider: string
