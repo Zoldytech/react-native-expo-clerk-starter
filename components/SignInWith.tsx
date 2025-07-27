@@ -1,8 +1,8 @@
-import React, { useEffect, useCallback } from 'react'
-import { Pressable, Image, Text } from 'react-native'
+import React, { useEffect, useCallback, useState } from 'react'
+import { Pressable, Image, Text, Alert } from 'react-native'
 import * as WebBrowser from 'expo-web-browser'
 import * as AuthSession from 'expo-auth-session'
-import { useSSO } from '@clerk/clerk-expo'
+import { useSSO, isClerkAPIResponseError } from '@clerk/clerk-expo'
 
 // Import social provider icons
 const googleIcon = require('../assets/images/social-providers/google.png')
@@ -37,11 +37,15 @@ const strategyLabels = {
 
 export default function SignInWith({ strategy, variant = 'icon' }: SignInWithProps) {
   useWarmUpBrowser()
+  const [isLoading, setIsLoading] = useState(false)
 
   // Use the `useSSO()` hook to access the `startSSOFlow()` method
   const { startSSOFlow } = useSSO()
 
   const onPress = useCallback(async () => {
+    if (isLoading) return
+    setIsLoading(true)
+
     try {
       // Start the authentication process by calling `startSSOFlow()`
       const { createdSessionId, setActive } =
@@ -60,19 +64,50 @@ export default function SignInWith({ strategy, variant = 'icon' }: SignInWithPro
         // there are missing requirements, such as MFA
         // Use the `signIn` or `signUp` returned from `startSSOFlow`
         // to handle next steps
+        Alert.alert(
+          'Additional Steps Required',
+          'Please complete the additional security steps to continue.',
+          [{ text: 'OK' }]
+        )
       }
     } catch (err) {
-      // See https://clerk.com/docs/custom-flows/error-handling
-      // for more info on error handling
       console.error('OAuth error:', JSON.stringify(err, null, 2))
+      
+      let errorMessage = 'Something went wrong. Please try again.'
+      
+      if (isClerkAPIResponseError(err)) {
+        // Handle specific Clerk errors
+        const firstError = err.errors[0]
+        if (firstError) {
+          errorMessage = firstError.longMessage || firstError.message
+        }
+      } else if (err instanceof Error) {
+        // Handle general errors
+        if (err.message.includes('cancelled') || err.message.includes('dismissed')) {
+          // User cancelled the OAuth flow, don't show error
+          return
+        }
+        errorMessage = err.message
+      }
+      
+      Alert.alert(
+        `${strategyLabels[strategy]} Sign In Failed`,
+        errorMessage,
+        [{ text: 'Try Again' }]
+      )
+    } finally {
+      setIsLoading(false)
     }
-  }, [strategy, startSSOFlow])
+  }, [strategy, startSSOFlow, isLoading])
 
   if (variant === 'button') {
     return (
       <Pressable 
         onPress={onPress} 
-        className="flex-row items-center justify-center bg-white border border-gray-300 rounded-lg py-3 px-4 active:bg-gray-50"
+        disabled={isLoading}
+        className={`flex-row items-center justify-center bg-white border border-gray-300 rounded-lg py-3 px-4 ${
+          isLoading ? 'opacity-50' : 'active:bg-gray-50'
+        }`}
       >
         <Image
           source={strategyIcons[strategy]}
@@ -80,7 +115,7 @@ export default function SignInWith({ strategy, variant = 'icon' }: SignInWithPro
           resizeMode="contain"
         />
         <Text className="text-gray-700 font-medium">
-          {strategyLabels[strategy]}
+          {isLoading ? 'Signing in...' : strategyLabels[strategy]}
         </Text>
       </Pressable>
     )
@@ -89,7 +124,10 @@ export default function SignInWith({ strategy, variant = 'icon' }: SignInWithPro
   return (
     <Pressable 
       onPress={onPress} 
-      className="w-16 h-16 items-center justify-center rounded-xl bg-white border border-gray-200 shadow-sm active:scale-95"
+      disabled={isLoading}
+      className={`w-16 h-16 items-center justify-center rounded-xl bg-white border border-gray-200 shadow-sm ${
+        isLoading ? 'opacity-50' : 'active:scale-95'
+      }`}
     >
       <Image
         source={strategyIcons[strategy]}
@@ -98,4 +136,4 @@ export default function SignInWith({ strategy, variant = 'icon' }: SignInWithPro
       />
     </Pressable>
   )
-} 
+}

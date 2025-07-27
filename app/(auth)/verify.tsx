@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import {
   Text,
   KeyboardAvoidingView,
@@ -32,6 +32,8 @@ const mapClerkErrorToFormField = (error: any) => {
 
 export default function VerifyScreen() {
   const router = useRouter()
+  const [isResending, setIsResending] = useState(false)
+  const [resendSuccess, setResendSuccess] = useState(false)
   
   const {
     control,
@@ -71,6 +73,33 @@ export default function VerifyScreen() {
       } else {
         setError('root', { message: 'Unknown error' })
       }
+    }
+  }
+
+  const onResendCode = async () => {
+    if (!isLoaded || !signUp) return
+    setIsResending(true)
+    setResendSuccess(false)
+
+    try {
+      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' })
+      setResendSuccess(true)
+      
+      // Hide success message after 3 seconds
+      setTimeout(() => {
+        setResendSuccess(false)
+      }, 3000)
+    } catch (err) {
+      console.error('Resend code error:', JSON.stringify(err, null, 2))
+      if (isClerkAPIResponseError(err)) {
+        err.errors.forEach((error) => {
+          setError('root', { message: error.longMessage })
+        })
+      } else {
+        setError('root', { message: 'Failed to resend code. Please try again.' })
+      }
+    } finally {
+      setIsResending(false)
     }
   }
 
@@ -117,12 +146,21 @@ export default function VerifyScreen() {
             </Text>
           </Pressable>
 
+          {resendSuccess && (
+            <Text className="text-green-600 text-sm text-center mb-4">
+              ✓ Verification code sent successfully!
+            </Text>
+          )}
+
           <Pressable 
-            onPress={() => console.log('Resend code')}
-            className="border border-black rounded-lg py-4 items-center active:opacity-75"
+            onPress={onResendCode}
+            disabled={isResending}
+            className={`border border-black rounded-lg py-4 items-center ${
+              isResending ? 'opacity-50' : 'active:opacity-75'
+            }`}
           >
             <Text className="font-semibold">
-              Resend Code
+              {isResending ? 'Sending...' : 'Resend Code'}
             </Text>
           </Pressable>
         </View>

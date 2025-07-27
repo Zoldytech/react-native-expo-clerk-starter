@@ -43,6 +43,9 @@ export default function ForgotPasswordScreen() {
   const router = useRouter()
   const [step, setStep] = useState<'email' | 'reset'>('email')
   const [isLoading, setIsLoading] = useState(false)
+  const [isResending, setIsResending] = useState(false)
+  const [resendSuccess, setResendSuccess] = useState(false)
+  const [userEmail, setUserEmail] = useState('')
 
   const {
     control: emailControl,
@@ -57,12 +60,18 @@ export default function ForgotPasswordScreen() {
     control: resetControl,
     handleSubmit: handleResetSubmit,
     setError: setResetError,
+    reset: resetForm,
     formState: { errors: resetErrors },
   } = useForm<ResetPasswordFields>({
     resolver: zodResolver(resetPasswordSchema),
+    defaultValues: {
+      code: '',
+      password: '',
+      confirmPassword: '',
+    },
   })
 
-  const { signIn, isLoaded } = useSignIn()
+  const { signIn, isLoaded, setActive } = useSignIn()
 
   const onSendResetEmail = async (data: ForgotPasswordFields) => {
     if (!isLoaded) return
@@ -75,6 +84,9 @@ export default function ForgotPasswordScreen() {
       })
 
       if (firstFactor.status === 'needs_first_factor') {
+        setUserEmail(data.email)
+        // Reset the reset form when moving to the reset step
+        resetForm()
         setStep('reset')
       }
     } catch (err) {
@@ -108,16 +120,32 @@ export default function ForgotPasswordScreen() {
       })
 
       if (resetAttempt.status === 'complete') {
-        Alert.alert(
-          'Password Reset Successful',
-          'Your password has been successfully reset. You can now sign in with your new password.',
-          [
-            {
-              text: 'OK',
-              onPress: () => router.replace('/(auth)/sign-in'),
-            },
-          ]
-        )
+        // Password reset successful and user is now signed in
+        if (resetAttempt.createdSessionId && setActive) {
+          setActive({ session: resetAttempt.createdSessionId })
+          Alert.alert(
+            'Password Reset Successful',
+            'Your password has been successfully reset!',
+            [
+              {
+                text: 'Continue',
+                onPress: () => router.replace('/(tabs)/home'),
+              },
+            ]
+          )
+        } else {
+          // Fallback: redirect to sign-in if no session was created
+          Alert.alert(
+            'Password Reset Successful',
+            'Your password has been successfully reset. You can now sign in with your new password.',
+            [
+              {
+                text: 'OK',
+                onPress: () => router.replace('/(auth)/sign-in'),
+              },
+            ]
+          )
+        }
       } else {
         setResetError('root', { message: 'Password reset could not be completed' })
       }
@@ -139,6 +167,37 @@ export default function ForgotPasswordScreen() {
       }
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const onResendResetCode = async () => {
+    if (!isLoaded || !userEmail) return
+    setIsResending(true)
+    setResendSuccess(false)
+
+    try {
+      await signIn.create({
+        strategy: 'reset_password_email_code',
+        identifier: userEmail,
+      })
+      
+      setResendSuccess(true)
+      
+      // Hide success message after 3 seconds
+      setTimeout(() => {
+        setResendSuccess(false)
+      }, 3000)
+    } catch (err) {
+      console.error('Resend reset code error:', JSON.stringify(err, null, 2))
+      if (isClerkAPIResponseError(err)) {
+        err.errors.forEach((error) => {
+          setResetError('root', { message: error.longMessage })
+        })
+      } else {
+        setResetError('root', { message: 'Failed to resend code. Please try again.' })
+      }
+    } finally {
+      setIsResending(false)
     }
   }
 
@@ -203,6 +262,7 @@ export default function ForgotPasswordScreen() {
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       className="flex-1 bg-gray-50"
+      key="reset-password-form"
     >
       <View className="flex-1 justify-center px-6">
         <View className="max-w-sm mx-auto w-full">
@@ -210,17 +270,22 @@ export default function ForgotPasswordScreen() {
             Reset Password
           </Text>
           <Text className="text-center mb-8 text-gray-600">
-            Enter the 6-digit code sent to your email and your new password.
+            Enter the 6-digit code sent to{' '}
+            {userEmail && (
+              <Text className="font-semibold">{userEmail}</Text>
+            )}{' '}
+            and your new password.
           </Text>
 
           <View className="mb-4">
             <FormInput
               control={resetControl}
               name="code"
-              placeholder="6-digit code"
+              placeholder="Enter 6-digit code"
               autoFocus
               keyboardType="number-pad"
               maxLength={6}
+              key="reset-code-input"
             />
           </View>
 
@@ -231,6 +296,7 @@ export default function ForgotPasswordScreen() {
               placeholder="New Password"
               secureTextEntry
               autoComplete="new-password"
+              key="reset-password-input"
             />
           </View>
 
@@ -241,6 +307,7 @@ export default function ForgotPasswordScreen() {
               placeholder="Confirm New Password"
               secureTextEntry
               autoComplete="new-password"
+              key="reset-confirm-password-input"
             />
           </View>
 
@@ -250,15 +317,33 @@ export default function ForgotPasswordScreen() {
             </Text>
           )}
 
+          {resendSuccess && (
+            <Text className="text-green-600 text-sm text-center mb-4">
+              ✓ Reset code sent successfully!
+            </Text>
+          )}
+
           <Pressable 
             onPress={handleResetSubmit(onResetPassword)}
             disabled={isLoading}
-            className={`rounded-lg py-4 items-center mb-6 ${
-              isLoading ? 'bg-black' : 'bg-black active:opacity-75'
+            className={`rounded-lg py-4 items-center mb-4 ${
+              isLoading ? 'bg-black opacity-75' : 'bg-black active:opacity-75'
             }`}
           >
             <Text className="text-white font-semibold">
               {isLoading ? 'Resetting...' : 'Reset Password'}
+            </Text>
+          </Pressable>
+
+          <Pressable 
+            onPress={onResendResetCode}
+            disabled={isResending}
+            className={`border border-black rounded-lg py-4 items-center mb-6 ${
+              isResending ? 'opacity-50' : 'active:opacity-75'
+            }`}
+          >
+            <Text className="font-semibold">
+              {isResending ? 'Sending...' : 'Resend Code'}
             </Text>
           </Pressable>
 
