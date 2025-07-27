@@ -8,7 +8,7 @@ import {
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import FormInput from '@/components/FormInput'
-import SignInWith from '@/components/SignInWith'
+import SignInWith from '@/components/auth/SignInWith'
 
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
