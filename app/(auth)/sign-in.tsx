@@ -1,198 +1,155 @@
-import { useOAuth, useSignIn } from '@clerk/clerk-expo'
-import { Link, useRouter } from 'expo-router'
 import React from 'react'
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import {
+  Text,
+  KeyboardAvoidingView,
+  Platform,
+  View,
+  Pressable,
+} from 'react-native'
+import { Link, useRouter } from 'expo-router'
+import FormInput from '@/components/FormInput'
+import SignInWith from '@/components/SignInWith'
 
-export default function Page() {
-  const { signIn, setActive, isLoaded } = useSignIn()
-  const { startOAuthFlow } = useOAuth({ strategy: 'oauth_google' })
-  const router = useRouter()
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { isClerkAPIResponseError, useSignIn } from '@clerk/clerk-expo'
 
-  const [emailAddress, setEmailAddress] = React.useState('')
-  const [password, setPassword] = React.useState('')
+// Sign-in validation schema
+const signInSchema = z.object({
+  email: z.string({ message: 'Email is required' }).email('Invalid email'),
+  password: z
+    .string({ message: 'Password is required' })
+    .min(8, 'Password should be at least 8 characters long'),
+})
 
-  // Handle Google OAuth
-  const onGooglePress = async () => {
-    if (!startOAuthFlow) return
-    
-    try {
-      const { createdSessionId, setActive: setActiveFromOAuth } = await startOAuthFlow()
+type SignInFields = z.infer<typeof signInSchema>
 
-      if (createdSessionId && setActiveFromOAuth) {
-        setActiveFromOAuth({ session: createdSessionId })
-        router.replace('/')
-      }
-    } catch (err) {
-      console.error('Google OAuth error:', err)
-    }
+const mapClerkErrorToFormField = (error: any) => {
+  switch (error.meta?.paramName) {
+    case 'identifier':
+    case 'email_address':
+      return 'email'
+    case 'password':
+      return 'password'
+    default:
+      return 'root'
   }
+}
 
-  // Handle the submission of the sign-in form
-  const onSignInPress = async () => {
+export default function SignInScreen() {
+  const router = useRouter()
+  
+  const {
+    control,
+    handleSubmit,
+    setError,
+    formState: { errors },
+  } = useForm<SignInFields>({
+    resolver: zodResolver(signInSchema),
+  })
+
+  const { signIn, isLoaded, setActive } = useSignIn()
+
+  const onSignIn = async (data: SignInFields) => {
     if (!isLoaded) return
 
-    // Start the sign-in process using the email and password provided
     try {
       const signInAttempt = await signIn.create({
-        identifier: emailAddress,
-        password,
+        identifier: data.email,
+        password: data.password,
       })
 
-      // If sign-in process is complete, set the created session as active
-      // and redirect the user
       if (signInAttempt.status === 'complete') {
-        await setActive({ session: signInAttempt.createdSessionId })
-        router.replace('/')
+        setActive({ session: signInAttempt.createdSessionId })
+        router.replace('/(tabs)')
       } else {
-        // If the status isn't complete, check why. User might need to
-        // complete further steps.
-        console.error(JSON.stringify(signInAttempt, null, 2))
+        console.log('Sign in failed')
+        setError('root', { message: 'Sign in could not be completed' })
       }
     } catch (err) {
-      // See https://clerk.com/docs/custom-flows/error-handling
-      // for more info on error handling
-      console.error(JSON.stringify(err, null, 2))
+      console.error('Sign in error:', JSON.stringify(err, null, 2))
+
+      if (isClerkAPIResponseError(err)) {
+        err.errors.forEach((error) => {
+          const fieldName = mapClerkErrorToFormField(error)
+          setError(fieldName, {
+            message: error.longMessage,
+          })
+        })
+      } else {
+        setError('root', { message: 'Unknown error' })
+      }
     }
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.form}>
-        <Text style={styles.title}>Welcome Back</Text>
-        
-        {/* Google OAuth Button */}
-        <TouchableOpacity style={styles.googleButton} onPress={onGooglePress}>
-          <Text style={styles.googleButtonText}>🚀 Continue with Google</Text>
-        </TouchableOpacity>
-        
-        {/* Divider */}
-        <View style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>or</Text>
-          <View style={styles.dividerLine} />
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      className="flex-1 bg-gray-50"
+    >
+      <View className="flex-1 justify-center px-6 max-w-sm mx-auto w-full">
+        <Text className="text-3xl font-bold text-center mb-2 text-gray-900">
+          Welcome Back
+        </Text>
+        <Text className="text-base text-center mb-8 text-gray-600">
+          Sign in to your account to continue
+        </Text>
+
+        <View className="mb-6">
+          <FormInput
+            control={control}
+            name="email"
+            placeholder="Email"
+            autoFocus
+            autoCapitalize="none"
+            keyboardType="email-address"
+            autoComplete="email"
+          />
+
+          <FormInput
+            control={control}
+            name="password"
+            placeholder="Password"
+            secureTextEntry
+            autoComplete="password"
+          />
+
+          {errors.root && (
+            <Text className="text-red-500 text-sm text-center mt-2">
+              Invalid email or password
+            </Text>
+          )}
         </View>
-        
-        <TextInput
-          style={styles.input}
-          autoCapitalize="none"
-          value={emailAddress}
-          placeholder="Enter email"
-          onChangeText={(emailAddress) => setEmailAddress(emailAddress)}
-          keyboardType="email-address"
-        />
-        
-        <TextInput
-          style={styles.input}
-          value={password}
-          placeholder="Enter password"
-          secureTextEntry={true}
-          onChangeText={(password) => setPassword(password)}
-        />
-        
-        <TouchableOpacity style={styles.button} onPress={onSignInPress}>
-          <Text style={styles.buttonText}>Sign In</Text>
-        </TouchableOpacity>
-        
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Don&apos;t have an account? </Text>
-          <Link href="/sign-up">
-            <Text style={styles.link}>Sign up</Text>
+
+        <Pressable 
+          onPress={handleSubmit(onSignIn)}
+          className="bg-blue-500 rounded-lg py-3 px-6 items-center mb-6 active:bg-blue-600"
+        >
+          <Text className="text-white text-base font-semibold">
+            Sign In
+          </Text>
+        </Pressable>
+
+        <View className="flex-row items-center mb-6">
+          <View className="flex-1 h-px bg-gray-300" />
+          <Text className="mx-4 text-gray-600 text-sm">or continue with</Text>
+          <View className="flex-1 h-px bg-gray-300" />
+        </View>
+
+        <View className="flex-row justify-center gap-4 mb-8">
+          <SignInWith strategy="oauth_google" />
+          <SignInWith strategy="oauth_apple" />
+        </View>
+
+        <View className="flex-row justify-center items-center">
+          <Text className="text-gray-600 text-sm">Don&apos;t have an account? </Text>
+          <Link href="/(auth)/sign-up" className="ml-1">
+            <Text className="text-blue-500 text-sm font-semibold">Sign up</Text>
           </Link>
         </View>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   )
 }
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    padding: 20,
-  },
-  form: {
-    backgroundColor: 'white',
-    padding: 24,
-    borderRadius: 12,
-    width: '100%',
-    maxWidth: 400,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 24,
-    color: '#333',
-  },
-  googleButton: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  googleButtonText: {
-    color: '#333',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#ddd',
-  },
-  dividerText: {
-    marginHorizontal: 16,
-    color: '#666',
-    fontSize: 14,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    fontSize: 16,
-    backgroundColor: '#fff',
-  },
-  button: {
-    backgroundColor: '#3b82f6',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  footerText: {
-    color: '#666',
-    fontSize: 14,
-  },
-  link: {
-    color: '#3b82f6',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-})
 
