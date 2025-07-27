@@ -99,10 +99,10 @@ export default function SignInScreen() {
 
           <View className="flex-row gap-3 mb-6">
             <View className="flex-1">
-              <SignInWith strategy="oauth_apple" variant="button" />
+              <SignInWith strategy="oauth_google" variant="button" />
             </View>
             <View className="flex-1">
-              <SignInWith strategy="oauth_google" variant="button" />
+              <SignInWith strategy="oauth_apple" variant="button" />
             </View>
           </View>
 

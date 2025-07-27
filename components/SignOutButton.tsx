@@ -1,43 +1,61 @@
-import { useClerk } from '@clerk/clerk-expo'
+import { useAuth } from '@clerk/clerk-expo'
 import { useRouter } from 'expo-router'
-import { StyleSheet, Text, TouchableOpacity } from 'react-native'
+import React from 'react'
+import { Pressable, Text, Alert } from 'react-native'
 
 const SignOutButton = () => {
-  // Use `useClerk()` to access the `signOut()` function
-  const { signOut } = useClerk()
+  const { signOut } = useAuth()
   const router = useRouter()
 
   const handleSignOut = async () => {
     try {
-      await signOut()
-      // Redirect to your desired page
-      router.replace('/')
-    } catch (err) {
-      // See https://clerk.com/docs/custom-flows/error-handling
-      // for more info on error handling
-      console.error(JSON.stringify(err, null, 2))
+      // Show confirmation dialog
+      Alert.alert(
+        'Sign Out',
+        'Are you sure you want to sign out?',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Sign Out',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                // Clear Clerk session completely
+                await signOut()
+                
+                // Reset the entire navigation stack and go to welcome
+                router.dismissAll()
+                router.replace('/')
+              } catch (error) {
+                console.error('Error during sign out:', error)
+                Alert.alert(
+                  'Sign Out Failed', 
+                  'There was an error signing you out. Please try again.'
+                )
+              }
+            },
+          },
+        ],
+        { cancelable: true }
+      )
+    } catch (error) {
+      console.error('Error showing sign out dialog:', error)
     }
   }
 
   return (
-    <TouchableOpacity style={styles.button} onPress={handleSignOut}>
-      <Text style={styles.buttonText}>Sign out</Text>
-    </TouchableOpacity>
+    <Pressable 
+      onPress={handleSignOut}
+      className="bg-red-500 rounded-lg py-3 px-6 mt-5 active:bg-red-600"
+    >
+      <Text className="text-white font-semibold text-center">
+        Sign Out
+      </Text>
+    </Pressable>
   )
 }
 
 export default SignOutButton
-
-const styles = StyleSheet.create({
-  button: {
-    backgroundColor: '#ef4444',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  buttonText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-})
