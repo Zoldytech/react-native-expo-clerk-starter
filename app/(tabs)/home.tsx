@@ -1,9 +1,15 @@
-import { useUser } from '@clerk/clerk-expo';
-import { Text, View } from 'react-native';
-import SignOutButton from '../../components/auth/SignOutButton';
+import React, { useState } from 'react'
+import { Text, View, TouchableOpacity, Modal } from 'react-native'
+
+import { useUser } from '@clerk/clerk-expo'
+import { FontAwesome } from '@expo/vector-icons'
+
+import SignOutButton from '../../components/auth/SignOutButton'
+import UserProfileSettings from '../../components/auth/UserProfileSettings'
 
 export default function HomeScreen() {
-  const { user } = useUser();
+  const { user } = useUser()
+  const [showProfileSettings, setShowProfileSettings] = useState(false)
 
   return (
     <View className="flex-1 justify-center items-center bg-gray-50 px-6">
@@ -23,10 +29,36 @@ export default function HomeScreen() {
           </View>
         )}
         
-        <View className="items-center">
+        <View className="items-center space-y-3">
+          <TouchableOpacity
+            onPress={() => setShowProfileSettings(true)}
+            className="bg-blue-500 rounded-lg py-3 px-6 flex-row items-center"
+          >
+            <FontAwesome name="user" size={16} color="white" />
+            <Text className="text-white font-semibold ml-2">Profile Settings</Text>
+          </TouchableOpacity>
+          
           <SignOutButton />
         </View>
       </View>
+
+      {/* Profile Settings Modal */}
+      <Modal
+        visible={showProfileSettings}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <View className="flex-1">
+          <View className="flex-row justify-between items-center p-4 border-b border-gray-200">
+            <TouchableOpacity onPress={() => setShowProfileSettings(false)}>
+              <FontAwesome name="times" size={20} color="#374151" />
+            </TouchableOpacity>
+            <Text className="text-lg font-semibold">Profile Settings</Text>
+            <View className="w-5" />
+          </View>
+          <UserProfileSettings />
+        </View>
+      </Modal>
     </View>
-  );
+  )
 }
