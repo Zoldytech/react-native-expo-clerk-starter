@@ -23,6 +23,7 @@ interface EmailManagementProps {
       emailAddress: string
       verification?: { status: string }
     }>
+    primaryEmailAddressId?: string | null
   }
 }
 
@@ -122,7 +123,10 @@ export default function EmailManagement({ user }: EmailManagementProps) {
         {user.emailAddresses.map((email) => {
           const clerkEmail = getEmailFromClerk(email.emailAddress)
           const isVerified = email.verification?.status === 'verified'
-          const isPrimary = user.emailAddresses.indexOf(email) === 0
+          // Check if this email is the primary one using Clerk's method
+          const isPrimary = clerkUser?.isPrimaryIdentification ? 
+            clerkUser.isPrimaryIdentification(clerkEmail!) : 
+            clerkUser?.primaryEmailAddressId === email.id
           
           return (
             <View 

@@ -21,6 +21,7 @@ interface ProfileSectionProps {
       emailAddress: string
       verification?: { status: string }
     }>
+    primaryEmailAddressId?: string | null
     phoneNumbers?: Array<{
       id: string
       phoneNumber: string

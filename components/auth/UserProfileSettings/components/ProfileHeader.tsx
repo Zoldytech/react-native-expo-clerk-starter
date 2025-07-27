@@ -26,6 +26,7 @@ interface ProfileHeaderProps {
       emailAddress: string
       verification?: { status: string }
     }>
+    primaryEmailAddressId?: string | null
     firstName?: string
     lastName?: string
     fullName?: string
