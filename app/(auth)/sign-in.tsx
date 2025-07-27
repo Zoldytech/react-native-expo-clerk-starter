@@ -62,7 +62,7 @@ export default function SignInScreen() {
 
       if (signInAttempt.status === 'complete') {
         setActive({ session: signInAttempt.createdSessionId })
-        router.replace('/(tabs)')
+        router.replace('/(tabs)/home')
       } else {
         console.log('Sign in failed')
         setError('root', { message: 'Sign in could not be completed' })

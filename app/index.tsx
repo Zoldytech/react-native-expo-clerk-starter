@@ -8,7 +8,7 @@ export default function WelcomeScreen() {
   return (
     <>
       <SignedIn>
-        <Redirect href="/(tabs)" />
+        <Redirect href="/(tabs)/home" />
       </SignedIn>
       
       <SignedOut>

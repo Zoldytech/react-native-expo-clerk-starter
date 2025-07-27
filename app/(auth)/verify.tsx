@@ -54,7 +54,7 @@ export default function VerifyScreen() {
 
       if (signUpAttempt.status === 'complete') {
         setActive({ session: signUpAttempt.createdSessionId })
-        router.replace('/(tabs)')
+        router.replace('/(tabs)/home')
       } else {
         console.log('Verification failed')
         console.log(signUpAttempt)

@@ -28,7 +28,6 @@ const SignOutButton = () => {
                 
                 // Reset the entire navigation stack and go to welcome
                 router.dismissAll()
-                router.replace('/')
               } catch (error) {
                 console.error('Error during sign out:', error)
                 Alert.alert(
