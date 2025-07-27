@@ -6,7 +6,7 @@ import {
   View,
   Pressable,
 } from 'react-native'
-import { Link, useRouter } from 'expo-router'
+import { useRouter } from 'expo-router'
 import FormInput from '@/components/FormInput'
 import SignInWith from '@/components/SignInWith'
 
@@ -147,9 +147,9 @@ export default function SignInScreen() {
 
           <View className="flex-row justify-center">
             <Text className="text-gray-600 text-sm">Don&apos;t have an account? </Text>
-            <Link href="/(auth)/sign-up">
+            <Pressable onPress={() => router.replace('/(auth)/sign-up')}>
               <Text className="text-blue-500 text-sm font-semibold">Sign up</Text>
-            </Link>
+            </Pressable>
           </View>
         </View>
       </View>

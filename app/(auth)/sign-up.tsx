@@ -6,7 +6,7 @@ import {
   View,
   Pressable,
 } from 'react-native'
-import { Link, useRouter } from 'expo-router'
+import { useRouter } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
 import FormInput from '@/components/FormInput'
 import SignInWith from '@/components/SignInWith'
@@ -99,7 +99,7 @@ export default function SignUpScreen() {
 
       await signUp.prepareEmailAddressVerification({ strategy: 'email_code' })
 
-      router.push('/(auth)/verify')
+      router.replace('/(auth)/verify')
     } catch (err) {
       console.log('Sign up error:', err)
       if (isClerkAPIResponseError(err)) {
@@ -221,9 +221,9 @@ export default function SignUpScreen() {
 
           <View className="flex-row justify-center">
             <Text className="text-gray-600 text-sm">Already have an account? </Text>
-            <Link href="/(auth)/sign-in">
+            <Pressable onPress={() => router.replace('/(auth)/sign-in')}>
               <Text className="text-blue-500 text-sm font-semibold">Sign in</Text>
-            </Link>
+            </Pressable>
           </View>
         </View>
       </View>
