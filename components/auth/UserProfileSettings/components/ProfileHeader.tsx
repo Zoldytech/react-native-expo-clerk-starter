@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { View, Text, TouchableOpacity, Alert, Image, Modal } from 'react-native'
+import { View, Text, TouchableOpacity, Alert, Image, Modal, ActivityIndicator } from 'react-native'
 
 import { FontAwesome } from '@expo/vector-icons'
 import { useUser } from '@clerk/clerk-expo'
@@ -125,13 +125,13 @@ export default function ProfileHeader({ user }: ProfileHeaderProps) {
 
       const result = source === 'camera' 
         ? await ImagePicker.launchCameraAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            mediaTypes: "images",
             allowsEditing: true,
             aspect: [1, 1],
             quality: 0.8,
           })
         : await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            mediaTypes: "images",
             allowsEditing: true,
             aspect: [1, 1],
             quality: 0.8,
@@ -151,14 +151,16 @@ export default function ProfileHeader({ user }: ProfileHeaderProps) {
 
     setIsUploadingAvatar(true)
     try {
-      // Convert image to blob
-      const response = await fetch(imageUri)
-      const blob = await response.blob()
+      // For React Native with Clerk, we need to pass the image as a proper file object
+      // First, let's read the file and create a proper file-like object
+      const fileInfo = {
+        uri: imageUri,
+        type: 'image/jpeg',
+        name: 'avatar.jpg',
+      }
       
-      // Create a File object from the blob
-      const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' })
-      
-      await clerkUser.setProfileImage({ file })
+      // Use the file object directly with Clerk
+      await clerkUser.setProfileImage({ file: fileInfo as any })
       
       Alert.alert('Success', 'Avatar updated successfully!')
     } catch (error: any) {
@@ -204,16 +206,16 @@ export default function ProfileHeader({ user }: ProfileHeaderProps) {
             <View className={`absolute -bottom-1 -right-1 bg-white rounded-full p-2 border border-gray-200 ${
               isUploadingAvatar ? 'opacity-50' : ''
             }`}>
-              <FontAwesome 
-                name={isUploadingAvatar ? "spinner" : "camera"} 
-                size={12} 
-                color="#374151" 
-              />
+              {isUploadingAvatar ? (
+                <ActivityIndicator size="small" color="#374151" />
+              ) : (
+                <FontAwesome name="camera" size={12} color="#374151" />
+              )}
             </View>
             
             {isUploadingAvatar && (
               <View className="absolute inset-0 bg-black bg-opacity-30 rounded-full items-center justify-center">
-                <FontAwesome name="spinner" size={20} color="white" />
+                <ActivityIndicator size="large" color="white" />
               </View>
             )}
           </TouchableOpacity>
