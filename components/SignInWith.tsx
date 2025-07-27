@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback } from 'react'
-import { Pressable, Image } from 'react-native'
+import { Pressable, Image, Text } from 'react-native'
 import * as WebBrowser from 'expo-web-browser'
 import * as AuthSession from 'expo-auth-session'
 import { useSSO } from '@clerk/clerk-expo'
@@ -10,6 +10,7 @@ const appleIcon = require('../assets/images/social-providers/apple.png')
 
 type SignInWithProps = {
   strategy: 'oauth_google' | 'oauth_apple'
+  variant?: 'icon' | 'button'
 }
 
 export const useWarmUpBrowser = () => {
@@ -29,7 +30,12 @@ const strategyIcons = {
   oauth_apple: appleIcon,
 }
 
-export default function SignInWith({ strategy }: SignInWithProps) {
+const strategyLabels = {
+  oauth_google: 'Google',
+  oauth_apple: 'Apple',
+}
+
+export default function SignInWith({ strategy, variant = 'icon' }: SignInWithProps) {
   useWarmUpBrowser()
 
   // Use the `useSSO()` hook to access the `startSSOFlow()` method
@@ -62,10 +68,28 @@ export default function SignInWith({ strategy }: SignInWithProps) {
     }
   }, [strategy, startSSOFlow])
 
+  if (variant === 'button') {
+    return (
+      <Pressable 
+        onPress={onPress} 
+        className="flex-row items-center justify-center bg-white border border-gray-300 rounded-lg py-3 px-4 active:bg-gray-50"
+      >
+        <Image
+          source={strategyIcons[strategy]}
+          className="w-5 h-5 mr-3"
+          resizeMode="contain"
+        />
+        <Text className="text-gray-700 font-medium">
+          {strategyLabels[strategy]}
+        </Text>
+      </Pressable>
+    )
+  }
+
   return (
     <Pressable 
       onPress={onPress} 
-      className="w-15 h-15 items-center justify-center rounded-xl bg-white border border-gray-200 shadow-sm active:scale-95"
+      className="w-16 h-16 items-center justify-center rounded-xl bg-white border border-gray-200 shadow-sm active:scale-95"
     >
       <Image
         source={strategyIcons[strategy]}

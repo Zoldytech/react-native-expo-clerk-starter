@@ -88,15 +88,30 @@ export default function SignInScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       className="flex-1 bg-gray-50"
     >
-      <View className="flex-1 justify-center px-6 max-w-sm mx-auto w-full">
-        <Text className="text-3xl font-bold text-center mb-2 text-gray-900">
-          Welcome Back
-        </Text>
-        <Text className="text-base text-center mb-8 text-gray-600">
-          Sign in to your account to continue
-        </Text>
+      <View className="flex-1 justify-center px-6">
+        <View className="max-w-sm mx-auto w-full">
+          <Text className="text-3xl font-bold text-center mb-2 text-gray-900">
+            Welcome Back
+          </Text>
+          <Text className="text-center mb-8 text-gray-600">
+            Sign in to your account to continue
+          </Text>
 
-        <View className="mb-6">
+          <View className="flex-row gap-3 mb-6">
+            <View className="flex-1">
+              <SignInWith strategy="oauth_apple" variant="button" />
+            </View>
+            <View className="flex-1">
+              <SignInWith strategy="oauth_google" variant="button" />
+            </View>
+          </View>
+
+          <View className="flex-row items-center mb-6">
+            <View className="flex-1 h-px bg-gray-300" />
+            <Text className="mx-4 text-gray-600 text-sm">or</Text>
+            <View className="flex-1 h-px bg-gray-300" />
+          </View>
+
           <FormInput
             control={control}
             name="email"
@@ -116,37 +131,26 @@ export default function SignInScreen() {
           />
 
           {errors.root && (
-            <Text className="text-red-500 text-sm text-center mt-2">
+            <Text className="text-red-500 text-sm text-center mb-4">
               Invalid email or password
             </Text>
           )}
-        </View>
 
-        <Pressable 
-          onPress={handleSubmit(onSignIn)}
-          className="bg-blue-500 rounded-lg py-3 px-6 items-center mb-6 active:bg-blue-600"
-        >
-          <Text className="text-white text-base font-semibold">
-            Sign In
-          </Text>
-        </Pressable>
+          <Pressable 
+            onPress={handleSubmit(onSignIn)}
+            className="bg-blue-500 rounded-lg py-4 items-center mb-6 active:bg-blue-600"
+          >
+            <Text className="text-white font-semibold">
+              Sign In
+            </Text>
+          </Pressable>
 
-        <View className="flex-row items-center mb-6">
-          <View className="flex-1 h-px bg-gray-300" />
-          <Text className="mx-4 text-gray-600 text-sm">or continue with</Text>
-          <View className="flex-1 h-px bg-gray-300" />
-        </View>
-
-        <View className="flex-row justify-center gap-4 mb-8">
-          <SignInWith strategy="oauth_google" />
-          <SignInWith strategy="oauth_apple" />
-        </View>
-
-        <View className="flex-row justify-center items-center">
-          <Text className="text-gray-600 text-sm">Don&apos;t have an account? </Text>
-          <Link href="/(auth)/sign-up" className="ml-1">
-            <Text className="text-blue-500 text-sm font-semibold">Sign up</Text>
-          </Link>
+          <View className="flex-row justify-center">
+            <Text className="text-gray-600 text-sm">Don&apos;t have an account? </Text>
+            <Link href="/(auth)/sign-up">
+              <Text className="text-blue-500 text-sm font-semibold">Sign up</Text>
+            </Link>
+          </View>
         </View>
       </View>
     </KeyboardAvoidingView>

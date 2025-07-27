@@ -3,7 +3,6 @@ import { Link, Redirect } from 'expo-router'
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 
 export default function WelcomeScreen() {
-  console.log('🔍 Welcome Screen rendering...')
 
   return (
     <>

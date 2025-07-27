@@ -39,19 +39,15 @@ export default function FormInput<T extends FieldValues>({
             value={value}
             onChangeText={onChange}
             onBlur={onBlur}
-            className={`
-              border rounded-lg px-4 py-3 text-base bg-white
-              ${error ? 'border-red-500' : 'border-gray-300'}
-              ${className || ''}
-            `}
+            className={`border rounded-lg px-4 py-3 bg-white ${
+              error ? 'border-red-500' : 'border-gray-300'
+            } ${className || ''}`}
             placeholderTextColor="#9CA3AF"
           />
-          {error ? (
+          {error && (
             <Text className="text-red-500 text-xs mt-1">
               {error.message}
             </Text>
-          ) : (
-            <View className="h-5" />
           )}
         </View>
       )}

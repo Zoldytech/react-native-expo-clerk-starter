@@ -79,16 +79,16 @@ export default function VerifyScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       className="flex-1 bg-gray-50"
     >
-      <View className="flex-1 justify-center px-6 max-w-sm mx-auto w-full">
-        <Text className="text-3xl font-bold text-center mb-2 text-gray-900">
-          Verify your email
-        </Text>
-        <Text className="text-base text-center mb-8 text-gray-600 leading-6">
-          We sent a verification code to your email address.
-          Enter the code below to complete your account setup.
-        </Text>
+      <View className="flex-1 justify-center px-6">
+        <View className="max-w-sm mx-auto w-full">
+          <Text className="text-3xl font-bold text-center mb-2 text-gray-900">
+            Verify your email
+          </Text>
+          <Text className="text-center mb-8 text-gray-600 leading-relaxed">
+            We sent a verification code to your email address.
+            Enter the code below to complete your account setup.
+          </Text>
 
-        <View className="mb-6">
           <FormInput
             control={control}
             name="code"
@@ -101,29 +101,29 @@ export default function VerifyScreen() {
           />
 
           {errors.root && (
-            <Text className="text-red-500 text-sm text-center mt-2">
+            <Text className="text-red-500 text-sm text-center mb-4">
               Verification failed. Please try again.
             </Text>
           )}
+
+          <Pressable 
+            onPress={handleSubmit(onVerify)}
+            className="bg-blue-500 rounded-lg py-4 items-center mb-4 active:bg-blue-600"
+          >
+            <Text className="text-white font-semibold">
+              Verify
+            </Text>
+          </Pressable>
+
+          <Pressable 
+            onPress={() => console.log('Resend code')}
+            className="border border-blue-500 rounded-lg py-4 items-center active:bg-blue-50"
+          >
+            <Text className="text-blue-500 font-semibold">
+              Resend Code
+            </Text>
+          </Pressable>
         </View>
-
-        <Pressable 
-          onPress={handleSubmit(onVerify)}
-          className="bg-blue-500 rounded-lg py-3 px-6 items-center mb-4 active:bg-blue-600"
-        >
-          <Text className="text-white text-base font-semibold">
-            Verify
-          </Text>
-        </Pressable>
-
-        <Pressable 
-          onPress={() => console.log('Resend code')}
-          className="bg-transparent border border-blue-500 rounded-lg py-3 px-6 items-center mt-2 active:bg-blue-50"
-        >
-          <Text className="text-blue-500 text-base font-semibold">
-            Resend Code
-          </Text>
-        </Pressable>
       </View>
     </KeyboardAvoidingView>
   )
