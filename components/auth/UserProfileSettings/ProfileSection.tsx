@@ -44,22 +44,32 @@ const emailSchema = z.object({
   email: z.string({ message: 'Email is required' }).email('Please enter a valid email address'),
 })
 
+// Email verification schema
+const emailVerificationSchema = z.object({
+  code: z.string({ message: 'Verification code is required' }).min(6, 'Code must be 6 digits').max(6, 'Code must be 6 digits'),
+})
+
 // Phone validation schema  
 const phoneSchema = z.object({
   phone: z.string({ message: 'Phone is required' }).min(1, 'Phone number is required'),
 })
 
 type EmailFields = z.infer<typeof emailSchema>
+type EmailVerificationFields = z.infer<typeof emailVerificationSchema>
 type PhoneFields = z.infer<typeof phoneSchema>
 
 export default function ProfileSection({ user }: ProfileSectionProps) {
   const { user: clerkUser } = useUser()
   const [showAddEmailModal, setShowAddEmailModal] = useState(false)
+  const [showEmailVerificationModal, setShowEmailVerificationModal] = useState(false)
   const [showAddPhoneModal, setShowAddPhoneModal] = useState(false)
   const [showConnectModal, setShowConnectModal] = useState(false)
   const [isAddingEmail, setIsAddingEmail] = useState(false)
+  const [isVerifyingEmail, setIsVerifyingEmail] = useState(false)
   const [isAddingPhone, setIsAddingPhone] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
+  const [pendingEmailVerification, setPendingEmailVerification] = useState<any>(null)
+  const [pendingEmailAddress, setPendingEmailAddress] = useState('')
 
   const {
     control: emailControl,
@@ -69,6 +79,16 @@ export default function ProfileSection({ user }: ProfileSectionProps) {
   } = useForm<EmailFields>({
     resolver: zodResolver(emailSchema),
     defaultValues: { email: '' },
+  })
+
+  const {
+    control: emailVerificationControl,
+    handleSubmit: handleEmailVerificationSubmit,
+    reset: resetEmailVerification,
+    formState: { errors: emailVerificationErrors },
+  } = useForm<EmailVerificationFields>({
+    resolver: zodResolver(emailVerificationSchema),
+    defaultValues: { code: '' },
   })
 
   const {
@@ -91,20 +111,24 @@ export default function ProfileSection({ user }: ProfileSectionProps) {
 
     setIsAddingEmail(true)
     try {
-      await clerkUser.createEmailAddress({ email: data.email })
-      Alert.alert(
-        'Email Added',
-        'Email address added successfully. Please check your email for verification.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              setShowAddEmailModal(false)
-              resetEmail()
-            }
-          }
-        ]
-      )
+      // Create email address without setting as primary
+      const emailAddress = await clerkUser.createEmailAddress({ 
+        email: data.email,
+      })
+      
+      // Prepare verification
+      await emailAddress.prepareVerification({ strategy: 'email_code' })
+      
+      // Store pending verification info
+      setPendingEmailVerification(emailAddress)
+      setPendingEmailAddress(data.email)
+      
+      // Close add modal and open verification modal
+      setShowAddEmailModal(false)
+      resetEmail()
+      resetEmailVerification()
+      setShowEmailVerificationModal(true)
+      
     } catch (error: any) {
       console.error('Add email error:', error)
       Alert.alert(
@@ -113,6 +137,54 @@ export default function ProfileSection({ user }: ProfileSectionProps) {
       )
     } finally {
       setIsAddingEmail(false)
+    }
+  }
+
+  const handleEmailVerification = async (data: EmailVerificationFields) => {
+    if (!pendingEmailVerification) return
+
+    setIsVerifyingEmail(true)
+    try {
+      await pendingEmailVerification.attemptVerification({ code: data.code })
+      
+      Alert.alert(
+        'Email Verified',
+        'Your email address has been successfully verified!',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              setShowEmailVerificationModal(false)
+              setPendingEmailVerification(null)
+              setPendingEmailAddress('')
+              resetEmailVerification()
+            }
+          }
+        ]
+      )
+    } catch (error: any) {
+      console.error('Email verification error:', error)
+      Alert.alert(
+        'Verification Failed',
+        error.errors?.[0]?.longMessage || 'Invalid verification code. Please try again.'
+      )
+    } finally {
+      setIsVerifyingEmail(false)
+    }
+  }
+
+  const handleResendEmailVerification = async () => {
+    if (!pendingEmailVerification) return
+
+    try {
+      await pendingEmailVerification.prepareVerification({ strategy: 'email_code' })
+      Alert.alert('Code Sent', 'A new verification code has been sent to your email.')
+    } catch (error: any) {
+      console.error('Resend verification error:', error)
+      Alert.alert(
+        'Error',
+        'Failed to resend verification code. Please try again.'
+      )
     }
   }
 
@@ -288,8 +360,65 @@ export default function ProfileSection({ user }: ProfileSectionProps) {
               />
             </View>
             <Text className="text-gray-500 text-sm">
-              A verification email will be sent to this address
+              You&apos;ll be prompted to verify this email address immediately after adding it.
             </Text>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Email Verification Modal */}
+      <Modal
+        visible={showEmailVerificationModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <View className="flex-1 bg-gray-50">
+          <View className="flex-row justify-between items-center p-4 border-b border-gray-200 bg-white">
+            <TouchableOpacity onPress={() => setShowEmailVerificationModal(false)}>
+              <Text className="text-blue-500 font-medium">Cancel</Text>
+            </TouchableOpacity>
+            <Text className="text-lg font-semibold">Verify Email</Text>
+            <TouchableOpacity 
+              onPress={handleEmailVerificationSubmit(handleEmailVerification)}
+              disabled={isVerifyingEmail}
+            >
+              <Text className={`font-medium ${
+                isVerifyingEmail ? 'text-gray-400' : 'text-blue-500'
+              }`}>
+                {isVerifyingEmail ? 'Verifying...' : 'Verify'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View className="p-6">
+            <Text className="text-gray-900 font-medium mb-2">
+              Check your email
+            </Text>
+            <Text className="text-gray-600 mb-6">
+              We&apos;ve sent a verification code to {pendingEmailAddress}. Enter the 6-digit code below.
+            </Text>
+
+            <View className="mb-6">
+              <FormInput
+                control={emailVerificationControl}
+                name="code"
+                label="Verification Code"
+                placeholder="Enter 6-digit code"
+                keyboardType="number-pad"
+                maxLength={6}
+                autoCapitalize="none"
+                autoComplete="one-time-code"
+              />
+            </View>
+
+            <TouchableOpacity 
+              onPress={handleResendEmailVerification}
+              className="items-center py-3"
+            >
+              <Text className="text-blue-500 font-medium">
+                Didn&apos;t receive the code? Resend
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
