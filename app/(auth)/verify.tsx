@@ -110,7 +110,7 @@ export default function VerifyScreen() {
 
           <Pressable 
             onPress={handleSubmit(onVerify)}
-            className="bg-blue-500 rounded-lg py-4 items-center mb-4 active:bg-blue-600"
+            className="bg-black rounded-lg py-4 items-center mb-4 active:opacity-75"
           >
             <Text className="text-white font-semibold">
               Verify
@@ -119,9 +119,9 @@ export default function VerifyScreen() {
 
           <Pressable 
             onPress={() => console.log('Resend code')}
-            className="border border-blue-500 rounded-lg py-4 items-center active:bg-blue-50"
+            className="border border-black rounded-lg py-4 items-center active:opacity-75"
           >
-            <Text className="text-blue-500 font-semibold">
+            <Text className="font-semibold">
               Resend Code
             </Text>
           </Pressable>

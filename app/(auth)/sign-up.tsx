@@ -199,14 +199,14 @@ export default function SignUpScreen() {
             <Text className="text-xs text-gray-600 text-center leading-relaxed">
               By continuing, you agree to our{' '}
               <Text 
-                className="text-blue-500 underline" 
+                className="underline" 
                 onPress={openTerms}
               >
                 Terms of Service
               </Text>
               {' '}and{' '}
               <Text 
-                className="text-blue-500 underline" 
+                className="underline" 
                 onPress={openPrivacy}
               >
                 Privacy Policy
@@ -216,7 +216,7 @@ export default function SignUpScreen() {
 
           <Pressable 
             onPress={handleSubmit(onSignUp)}
-            className="bg-blue-500 rounded-lg py-4 items-center mb-6 active:bg-blue-600"
+            className="bg-black rounded-lg py-4 items-center mb-6 active:opacity-75"
           >
             <Text className="text-white font-semibold">
               Create Account
@@ -226,7 +226,7 @@ export default function SignUpScreen() {
           <View className="flex-row justify-center">
             <Text className="text-gray-600 text-sm">Already have an account? </Text>
             <Pressable onPress={() => router.replace('/(auth)/sign-in')}>
-              <Text className="text-blue-500 text-sm font-semibold">Sign in</Text>
+              <Text className="text-sm font-semibold">Sign in</Text>
             </Pressable>
           </View>
         </View>

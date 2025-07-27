@@ -179,7 +179,7 @@ export default function ForgotPasswordScreen() {
               onPress={handleEmailSubmit(onSendResetEmail)}
               disabled={isLoading}
               className={`rounded-lg py-4 items-center mb-6 ${
-                isLoading ? 'bg-blue-300' : 'bg-blue-500 active:bg-blue-600'
+                isLoading ? 'bg-black opacity-75' : 'bg-black'
               }`}
             >
               <Text className="text-white font-semibold">
@@ -190,7 +190,7 @@ export default function ForgotPasswordScreen() {
             <View className="flex-row justify-center">
               <Text className="text-gray-600 text-sm">Remember your password? </Text>
               <Pressable onPress={() => router.replace('/(auth)/sign-in')}>
-                <Text className="text-blue-500 text-sm font-semibold">Sign in</Text>
+                <Text className="text-sm font-semibold">Sign in</Text>
               </Pressable>
             </View>
           </View>
@@ -254,7 +254,7 @@ export default function ForgotPasswordScreen() {
             onPress={handleResetSubmit(onResetPassword)}
             disabled={isLoading}
             className={`rounded-lg py-4 items-center mb-6 ${
-              isLoading ? 'bg-blue-300' : 'bg-blue-500 active:bg-blue-600'
+              isLoading ? 'bg-black' : 'bg-black active:opacity-75'
             }`}
           >
             <Text className="text-white font-semibold">
@@ -264,7 +264,7 @@ export default function ForgotPasswordScreen() {
 
           <View className="flex-row justify-center">
             <Pressable onPress={() => setStep('email')}>
-              <Text className="text-blue-500 text-sm font-semibold">
+              <Text className="text-sm font-semibold">
                 ← Back to email
               </Text>
             </Pressable>

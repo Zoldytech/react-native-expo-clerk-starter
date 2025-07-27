@@ -136,7 +136,7 @@ export default function SignInScreen() {
 
           <View className="flex-row justify-end mb-4">
             <Pressable onPress={() => router.push('/(auth)/forgot-password' as any)}>
-              <Text className="text-blue-500 text-sm font-semibold">Forgot Password?</Text>
+              <Text className="text-sm font-semibold">Forgot Password?</Text>
             </Pressable>
           </View>
 
@@ -148,7 +148,7 @@ export default function SignInScreen() {
 
           <Pressable 
             onPress={handleSubmit(onSignIn)}
-            className="bg-blue-500 rounded-lg py-4 items-center mb-6 active:bg-blue-600"
+            className="bg-black rounded-lg py-4 items-center mb-6 active:opacity-75"
           >
             <Text className="text-white font-semibold">
               Sign In
@@ -158,7 +158,7 @@ export default function SignInScreen() {
           <View className="flex-row justify-center">
             <Text className="text-gray-600 text-sm">Don&apos;t have an account? </Text>
             <Pressable onPress={() => router.replace('/(auth)/sign-up')}>
-              <Text className="text-blue-500 text-sm font-semibold">Sign up</Text>
+              <Text className="text-sm font-semibold">Sign up</Text>
             </Pressable>
           </View>
         </View>
