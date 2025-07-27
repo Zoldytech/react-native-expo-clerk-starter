@@ -1,6 +1,6 @@
 import { SignedIn, SignedOut } from '@clerk/clerk-expo'
 import { Redirect, useRouter } from 'expo-router'
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { Text, Pressable, View } from 'react-native'
 
 export default function WelcomeScreen() {
   const router = useRouter()
@@ -12,27 +12,31 @@ export default function WelcomeScreen() {
       </SignedIn>
       
       <SignedOut>
-        <View style={styles.container}>
-          <View style={styles.card}>            
-            <Text style={styles.title}>Welcome to</Text>
-            <Text style={styles.brandTitle}>LinkupSoc</Text>
-            <Text style={styles.subtitle}>
+        <View className="flex-1 justify-center bg-gray-50 px-6">
+          <View className="max-w-sm mx-auto w-full">            
+            <Text className="text-3xl font-bold text-center mb-2 text-gray-900">
+              Welcome to
+            </Text>
+            <Text className="text-4xl font-bold text-center mb-8 text-black">
+              LinkupSoc
+            </Text>
+            <Text className="text-center mb-12 text-gray-600 leading-relaxed">
               Connect, share, and discover amazing content with your community.
             </Text>
             
-            <TouchableOpacity 
-              style={styles.primaryButton}
+            <Pressable 
               onPress={() => router.push('/(auth)/sign-in')}
+              className="bg-black rounded-lg py-4 items-center mb-4 active:opacity-75"
             >
-              <Text style={styles.primaryButtonText}>Sign In</Text>
-            </TouchableOpacity>
+              <Text className="text-white font-semibold">Sign In</Text>
+            </Pressable>
             
-            <TouchableOpacity 
-              style={styles.secondaryButton}
+            <Pressable 
               onPress={() => router.push('/(auth)/sign-up')}
+              className="border border-black rounded-lg py-4 items-center active:opacity-75"
             >
-              <Text style={styles.secondaryButtonText}>Create Account</Text>
-            </TouchableOpacity>
+              <Text className="font-semibold">Create Account</Text>
+            </Pressable>
           </View>
         </View>
       </SignedOut>
@@ -40,68 +44,3 @@ export default function WelcomeScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    padding: 24,
-  },
-  card: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 24,
-    width: '100%',
-    maxWidth: 400,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 8,
-    color: '#333',
-  },
-  brandTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 24,
-    color: '#3b82f6',
-  },
-  subtitle: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 32,
-    color: '#666',
-    lineHeight: 24,
-  },
-  primaryButton: {
-    backgroundColor: '#3b82f6',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  primaryButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  secondaryButton: {
-    backgroundColor: '#f3f4f6',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-  },
-  secondaryButtonText: {
-    color: '#374151',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-})
