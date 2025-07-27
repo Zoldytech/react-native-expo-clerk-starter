@@ -4,7 +4,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   View,
-  Pressable,
+  TouchableOpacity,
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import FormInput from '@/components/FormInput'
@@ -135,9 +135,9 @@ export default function SignInScreen() {
           </View>
 
           <View className="flex-row justify-end mb-4">
-            <Pressable onPress={() => router.push('/(auth)/forgot-password' as any)}>
+            <TouchableOpacity onPress={() => router.push('/(auth)/forgot-password' as any)}>
               <Text className="text-sm font-semibold">Forgot Password?</Text>
-            </Pressable>
+            </TouchableOpacity>
           </View>
 
           {errors.root && (
@@ -146,20 +146,20 @@ export default function SignInScreen() {
             </Text>
           )}
 
-          <Pressable 
+          <TouchableOpacity 
             onPress={handleSubmit(onSignIn)}
-            className="bg-black rounded-lg py-4 items-center mb-6 active:opacity-75"
+            className="bg-black rounded-lg py-4 items-center mb-6"
           >
             <Text className="text-white font-semibold">
               Sign In
             </Text>
-          </Pressable>
+          </TouchableOpacity>
 
           <View className="flex-row justify-center">
             <Text className="text-gray-600 text-sm">Don&apos;t have an account? </Text>
-            <Pressable onPress={() => router.replace('/(auth)/sign-up')}>
+            <TouchableOpacity onPress={() => router.replace('/(auth)/sign-up')}>
               <Text className="text-sm font-semibold">Sign up</Text>
-            </Pressable>
+            </TouchableOpacity>
           </View>
         </View>
       </View>

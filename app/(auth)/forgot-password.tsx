@@ -4,7 +4,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   View,
-  Pressable,
+  TouchableOpacity,
   Alert,
 } from 'react-native'
 import { useRouter } from 'expo-router'
@@ -234,7 +234,7 @@ export default function ForgotPasswordScreen() {
               </Text>
             )}
 
-            <Pressable 
+            <TouchableOpacity 
               onPress={handleEmailSubmit(onSendResetEmail)}
               disabled={isLoading}
               className={`rounded-lg py-4 items-center mb-6 ${
@@ -244,13 +244,13 @@ export default function ForgotPasswordScreen() {
               <Text className="text-white font-semibold">
                 {isLoading ? 'Sending...' : 'Send Reset Code'}
               </Text>
-            </Pressable>
+            </TouchableOpacity>
 
             <View className="flex-row justify-center">
               <Text className="text-gray-600 text-sm">Remember your password? </Text>
-              <Pressable onPress={() => router.replace('/(auth)/sign-in')}>
+              <TouchableOpacity onPress={() => router.replace('/(auth)/sign-in')}>
                 <Text className="text-sm font-semibold">Sign in</Text>
-              </Pressable>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -323,36 +323,36 @@ export default function ForgotPasswordScreen() {
             </Text>
           )}
 
-          <Pressable 
+          <TouchableOpacity 
             onPress={handleResetSubmit(onResetPassword)}
             disabled={isLoading}
             className={`rounded-lg py-4 items-center mb-4 ${
-              isLoading ? 'bg-black opacity-75' : 'bg-black active:opacity-75'
+              isLoading ? 'bg-black opacity-75' : 'bg-black'
             }`}
           >
             <Text className="text-white font-semibold">
               {isLoading ? 'Resetting...' : 'Reset Password'}
             </Text>
-          </Pressable>
+          </TouchableOpacity>
 
-          <Pressable 
+          <TouchableOpacity 
             onPress={onResendResetCode}
             disabled={isResending}
             className={`border border-black rounded-lg py-4 items-center mb-6 ${
-              isResending ? 'opacity-50' : 'active:opacity-75'
+              isResending ? 'opacity-50' : ''
             }`}
           >
             <Text className="font-semibold">
               {isResending ? 'Sending...' : 'Resend Code'}
             </Text>
-          </Pressable>
+          </TouchableOpacity>
 
           <View className="flex-row justify-center">
-            <Pressable onPress={() => setStep('email')}>
+            <TouchableOpacity onPress={() => setStep('email')}>
               <Text className="text-sm font-semibold">
                 ← Back to email
               </Text>
-            </Pressable>
+            </TouchableOpacity>
           </View>
         </View>
       </View>

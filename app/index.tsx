@@ -1,6 +1,6 @@
 import { SignedIn, SignedOut } from '@clerk/clerk-expo'
 import { Redirect, useRouter } from 'expo-router'
-import { Text, Pressable, View } from 'react-native'
+import { Text, TouchableOpacity, View } from 'react-native'
 
 export default function WelcomeScreen() {
   const router = useRouter()
@@ -24,19 +24,19 @@ export default function WelcomeScreen() {
               Connect, share, and discover amazing content with your community.
             </Text>
             
-            <Pressable 
+            <TouchableOpacity 
               onPress={() => router.push('/(auth)/sign-in')}
-              className="bg-black rounded-lg py-4 items-center mb-4 active:opacity-75"
+              className="bg-black rounded-lg py-4 items-center mb-4"
             >
               <Text className="text-white font-semibold">Sign In</Text>
-            </Pressable>
+            </TouchableOpacity>
             
-            <Pressable 
+            <TouchableOpacity 
               onPress={() => router.push('/(auth)/sign-up')}
-              className="border border-black rounded-lg py-4 items-center active:opacity-75"
+              className="border border-black rounded-lg py-4 items-center"
             >
               <Text className="font-semibold">Create Account</Text>
-            </Pressable>
+            </TouchableOpacity>
           </View>
         </View>
       </SignedOut>

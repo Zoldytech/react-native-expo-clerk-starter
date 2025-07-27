@@ -4,7 +4,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   View,
-  Pressable,
+  TouchableOpacity,
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
@@ -214,20 +214,20 @@ export default function SignUpScreen() {
             </Text>
           </View>
 
-          <Pressable 
+          <TouchableOpacity 
             onPress={handleSubmit(onSignUp)}
-            className="bg-black rounded-lg py-4 items-center mb-6 active:opacity-75"
+            className="bg-black rounded-lg py-4 items-center mb-6"
           >
             <Text className="text-white font-semibold">
               Create Account
             </Text>
-          </Pressable>
+          </TouchableOpacity>
 
           <View className="flex-row justify-center">
             <Text className="text-gray-600 text-sm">Already have an account? </Text>
-            <Pressable onPress={() => router.replace('/(auth)/sign-in')}>
+            <TouchableOpacity onPress={() => router.replace('/(auth)/sign-in')}>
               <Text className="text-sm font-semibold">Sign in</Text>
-            </Pressable>
+            </TouchableOpacity>
           </View>
         </View>
       </View>

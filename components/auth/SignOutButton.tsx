@@ -1,7 +1,7 @@
 import { useAuth } from '@clerk/clerk-expo'
 import { useRouter } from 'expo-router'
 import React from 'react'
-import { Pressable, Text, Alert } from 'react-native'
+import { TouchableOpacity, Text, Alert } from 'react-native'
 
 const SignOutButton = () => {
   const { signOut } = useAuth()
@@ -46,14 +46,14 @@ const SignOutButton = () => {
   }
 
   return (
-    <Pressable 
+    <TouchableOpacity 
       onPress={handleSignOut}
-      className="bg-red-500 rounded-lg py-3 px-6 mt-5 active:bg-red-600"
+      className="bg-red-500 rounded-lg py-3 px-6 mt-5"
     >
       <Text className="text-white font-semibold text-center">
         Sign Out
       </Text>
-    </Pressable>
+    </TouchableOpacity>
   )
 }
 

@@ -4,7 +4,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   View,
-  Pressable,
+  TouchableOpacity,
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import FormInput from '@/components/FormInput'
@@ -137,14 +137,14 @@ export default function VerifyScreen() {
             </Text>
           )}
 
-          <Pressable 
+          <TouchableOpacity 
             onPress={handleSubmit(onVerify)}
-            className="bg-black rounded-lg py-4 items-center mb-4 active:opacity-75"
+            className="bg-black rounded-lg py-4 items-center mb-4"
           >
             <Text className="text-white font-semibold">
               Verify
             </Text>
-          </Pressable>
+          </TouchableOpacity>
 
           {resendSuccess && (
             <Text className="text-green-600 text-sm text-center mb-4">
@@ -152,19 +152,19 @@ export default function VerifyScreen() {
             </Text>
           )}
 
-          <Pressable 
+          <TouchableOpacity 
             onPress={onResendCode}
             disabled={isResending}
             className={`border border-black rounded-lg py-4 items-center ${
-              isResending ? 'opacity-50' : 'active:opacity-75'
+              isResending ? 'opacity-50' : ''
             }`}
           >
             <Text className="font-semibold">
               {isResending ? 'Sending...' : 'Resend Code'}
             </Text>
-          </Pressable>
+          </TouchableOpacity>
         </View>
       </View>
     </KeyboardAvoidingView>
   )
-} 
+}

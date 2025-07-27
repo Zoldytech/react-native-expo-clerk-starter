@@ -1,9 +1,9 @@
 import React, { useEffect, useCallback, useState } from 'react'
-import { Pressable, Text, Alert } from 'react-native'
+import { TouchableOpacity, Text, Alert } from 'react-native'
 import * as WebBrowser from 'expo-web-browser'
 import * as AuthSession from 'expo-auth-session'
 import { useSSO, isClerkAPIResponseError } from '@clerk/clerk-expo'
-import { AntDesign } from '@expo/vector-icons'
+import { FontAwesome } from '@expo/vector-icons'
 
 type SignInWithProps = {
   strategy: 'oauth_google' | 'oauth_apple'
@@ -24,7 +24,7 @@ export const useWarmUpBrowser = () => {
 
 const strategyIcons = {
   oauth_google: 'google' as const,
-  oauth_apple: 'apple1' as const,
+  oauth_apple: 'apple' as const,
 }
 
 const strategyLabels = {
@@ -99,14 +99,14 @@ export default function SignInWith({ strategy, variant = 'icon' }: SignInWithPro
 
   if (variant === 'button') {
     return (
-      <Pressable 
+      <TouchableOpacity 
         onPress={onPress} 
         disabled={isLoading}
         className={`flex-row items-center justify-center bg-white border border-gray-300 rounded-lg py-3 px-4 ${
-          isLoading ? 'opacity-50' : 'active:bg-gray-50'
+          isLoading ? 'opacity-50' : ''
         }`}
       >
-        <AntDesign
+        <FontAwesome
           name={strategyIcons[strategy]}
           size={20}
           color="#374151"
@@ -115,23 +115,23 @@ export default function SignInWith({ strategy, variant = 'icon' }: SignInWithPro
         <Text className="text-gray-700 font-medium">
           {isLoading ? 'Signing in...' : strategyLabels[strategy]}
         </Text>
-      </Pressable>
+      </TouchableOpacity>
     )
   }
 
   return (
-    <Pressable 
+    <TouchableOpacity 
       onPress={onPress} 
       disabled={isLoading}
       className={`w-16 h-16 items-center justify-center rounded-xl bg-white border border-gray-200 shadow-sm ${
-        isLoading ? 'opacity-50' : 'active:scale-95'
+        isLoading ? 'opacity-50' : ''
       }`}
     >
-      <AntDesign
+      <FontAwesome
         name={strategyIcons[strategy]}
         size={32}
         color="#374151"
       />
-    </Pressable>
+    </TouchableOpacity>
   )
 }
