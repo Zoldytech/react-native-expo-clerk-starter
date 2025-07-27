@@ -1,12 +1,9 @@
 import React, { useEffect, useCallback, useState } from 'react'
-import { Pressable, Image, Text, Alert } from 'react-native'
+import { Pressable, Text, Alert } from 'react-native'
 import * as WebBrowser from 'expo-web-browser'
 import * as AuthSession from 'expo-auth-session'
 import { useSSO, isClerkAPIResponseError } from '@clerk/clerk-expo'
-
-// Import social provider icons
-const googleIcon = require('../assets/images/social-providers/google.png')
-const appleIcon = require('../assets/images/social-providers/apple.png')
+import { AntDesign } from '@expo/vector-icons'
 
 type SignInWithProps = {
   strategy: 'oauth_google' | 'oauth_apple'
@@ -26,8 +23,8 @@ export const useWarmUpBrowser = () => {
 }
 
 const strategyIcons = {
-  oauth_google: googleIcon,
-  oauth_apple: appleIcon,
+  oauth_google: 'google' as const,
+  oauth_apple: 'apple1' as const,
 }
 
 const strategyLabels = {
@@ -109,10 +106,11 @@ export default function SignInWith({ strategy, variant = 'icon' }: SignInWithPro
           isLoading ? 'opacity-50' : 'active:bg-gray-50'
         }`}
       >
-        <Image
-          source={strategyIcons[strategy]}
-          className="w-5 h-5 mr-3"
-          resizeMode="contain"
+        <AntDesign
+          name={strategyIcons[strategy]}
+          size={20}
+          color="#374151"
+          style={{ marginRight: 12 }}
         />
         <Text className="text-gray-700 font-medium">
           {isLoading ? 'Signing in...' : strategyLabels[strategy]}
@@ -129,10 +127,10 @@ export default function SignInWith({ strategy, variant = 'icon' }: SignInWithPro
         isLoading ? 'opacity-50' : 'active:scale-95'
       }`}
     >
-      <Image
-        source={strategyIcons[strategy]}
-        className="w-8 h-8"
-        resizeMode="contain"
+      <AntDesign
+        name={strategyIcons[strategy]}
+        size={32}
+        color="#374151"
       />
     </Pressable>
   )
