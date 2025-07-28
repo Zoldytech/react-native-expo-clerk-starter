@@ -1,6 +1,7 @@
 import { useSignIn, useSignUp } from '@clerk/clerk-expo'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'expo-router'
+import * as WebBrowser from 'expo-web-browser'
 import React, { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Alert, KeyboardAvoidingView, Platform, Text, TouchableOpacity, View } from 'react-native'
@@ -13,6 +14,10 @@ import SignInWith from '@/components/auth/SignInWith'
 const emailSchema = z.object({
   email: z.string({ message: 'Email is required' }).email('Please enter a valid email address'),
 })
+
+// Constants for web URLs  
+const WEB_URL_TERMS = 'https://linkupsoc.com/terms-of-use'
+const WEB_URL_PRIVACY = 'https://linkupsoc.com/privacy-policy'
 
 // Sign-in schema (existing user)
 const signInSchema = z.object({
@@ -48,6 +53,34 @@ export default function ContinueWithAuth() {
   const [authStep, setAuthStep] = useState<AuthStep>('email')
   const [userEmail, setUserEmail] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+
+  const openTerms = async () => {
+    try {
+      await WebBrowser.openBrowserAsync(WEB_URL_TERMS, {
+        presentationStyle: WebBrowser.WebBrowserPresentationStyle.FORM_SHEET,
+        controlsColor: '#3B82F6',
+        readerMode: false,
+        showTitle: true,
+        enableBarCollapsing: false,
+      })
+    } catch (error) {
+      console.error('Error opening Terms of Service:', error)
+    }
+  }
+
+  const openPrivacy = async () => {
+    try {
+      await WebBrowser.openBrowserAsync(WEB_URL_PRIVACY, {
+        presentationStyle: WebBrowser.WebBrowserPresentationStyle.FORM_SHEET,
+        controlsColor: '#3B82F6',
+        readerMode: false,
+        showTitle: true,
+        enableBarCollapsing: false,
+      })
+    } catch (error) {
+      console.error('Error opening Privacy Policy:', error)
+    }
+  }
 
   // Email form
   const emailForm = useForm<EmailFields>({
@@ -179,7 +212,7 @@ export default function ContinueWithAuth() {
 
       if (signInAttempt.status === 'complete') {
         await setActive({ session: signInAttempt.createdSessionId })
-        router.replace('/(tabs)' as any)
+        router.replace('/(tabs)/home' as any)
       } else {
         signInForm.setError('root', { message: 'Sign in could not be completed' })
       }
@@ -221,7 +254,7 @@ export default function ContinueWithAuth() {
         setAuthStep('verify')
       } else if (signUpAttempt.status === 'complete') {
         await setActiveSignUp({ session: signUpAttempt.createdSessionId })
-        router.replace('/(tabs)' as any)
+        router.replace('/(tabs)/home' as any)
       }
     } catch (error: any) {
       console.error('Sign up error:', error)
@@ -251,7 +284,7 @@ export default function ContinueWithAuth() {
 
       if (signUpAttempt.status === 'complete') {
         await setActiveSignUp({ session: signUpAttempt.createdSessionId })
-        router.replace('/(tabs)' as any)
+        router.replace('/(tabs)/home' as any)
       } else {
         verificationForm.setError('code', { message: 'Verification failed. Please try again.' })
       }
@@ -281,78 +314,70 @@ export default function ContinueWithAuth() {
   if (authStep === 'email') {
     return (
       <KeyboardAvoidingView 
-        className="flex-1 bg-white"
+        className="flex-1 bg-gray-50"
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View className="flex-1 px-6 pt-20">
-          <View className="mb-8">
-            <Text className="text-3xl font-bold text-gray-900 mb-2">
+        <View className="flex-1 justify-center px-6">
+          <View className="max-w-sm mx-auto w-full">
+            <Text className="text-3xl font-bold text-center mb-2 text-gray-900">
               Continue to your account
             </Text>
-            <Text className="text-gray-600 text-lg">
+            <Text className="text-center mb-8 text-gray-600">
               Sign in or create an account to get started
             </Text>
-          </View>
 
-          <View className="mb-6">
-            <FormInput
-              control={emailForm.control}
-              name="email"
-              label="Email address"
-              placeholder="Enter your email"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              textContentType="emailAddress"
-            />
-          </View>
+            <View className="flex-row gap-3 mb-6">
+              <View className="flex-1">
+                <SignInWith strategy="oauth_google" variant="button" />
+              </View>
+              <View className="flex-1">
+                <SignInWith strategy="oauth_apple" variant="button" />
+              </View>
+            </View>
 
-          <TouchableOpacity
-            onPress={emailForm.handleSubmit(handleEmailContinue)}
-            disabled={isLoading || !signInLoaded}
-            className={`w-full py-4 rounded-lg mb-6 ${
-              isLoading || !signInLoaded ? 'bg-gray-300' : 'bg-black'
-            }`}
-          >
-            <Text className={`text-center font-semibold ${
-              isLoading || !signInLoaded ? 'text-gray-500' : 'text-white'
-            }`}>
-              {!signInLoaded 
-                ? 'Loading...' 
-                : isLoading 
-                  ? 'Checking...' 
-                  : 'Continue'
-              }
-            </Text>
-          </TouchableOpacity>
+            <View className="flex-row items-center mb-6">
+              <View className="flex-1 h-px bg-gray-300" />
+              <Text className="mx-4 text-gray-600 text-sm">or</Text>
+              <View className="flex-1 h-px bg-gray-300" />
+            </View>
 
-          <View className="flex-row items-center mb-6">
-            <View className="flex-1 h-px bg-gray-300" />
-            <Text className="mx-4 text-gray-500 font-medium">OR</Text>
-            <View className="flex-1 h-px bg-gray-300" />
-          </View>
+            <View className="mb-4">
+              <FormInput
+                control={emailForm.control}
+                name="email"
+                placeholder="Email"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                textContentType="emailAddress"
+                autoFocus
+              />
+            </View>
 
-          <View className="mb-8 space-y-3">
-            <SignInWith strategy="oauth_google" variant="button" />
-            <SignInWith strategy="oauth_apple" variant="button" />
-          </View>
+            <TouchableOpacity
+              onPress={emailForm.handleSubmit(handleEmailContinue)}
+              disabled={isLoading || !signInLoaded}
+              className={`rounded-lg py-4 items-center mb-6 ${
+                isLoading || !signInLoaded ? 'bg-gray-300' : 'bg-black'
+              }`}
+            >
+              <Text className={`font-semibold ${
+                isLoading || !signInLoaded ? 'text-gray-500' : 'text-white'
+              }`}>
+                {!signInLoaded 
+                  ? 'Loading...' 
+                  : isLoading 
+                    ? 'Checking...' 
+                    : 'Continue'
+                }
+              </Text>
+            </TouchableOpacity>
 
-          <View className="mt-auto pb-8">
-            <View className="flex-row justify-center items-center mb-4">
-              <Text className="text-gray-600">Need help? </Text>
+            <View className="flex-row justify-end mb-4">
               <TouchableOpacity
                 onPress={() => router.push('/(auth)/forgot-password')}
               >
-                <Text className="text-black font-medium">Reset password</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <View className="flex-row justify-center items-center">
-              <Text className="text-gray-600">Prefer the classic flow? </Text>
-              <TouchableOpacity
-                onPress={() => router.push('/(auth)/sign-in')}
-              >
-                <Text className="text-black font-medium">Sign in here</Text>
+                <Text className="text-sm font-semibold">Forgot password?</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -365,61 +390,60 @@ export default function ContinueWithAuth() {
   if (authStep === 'signin') {
     return (
       <KeyboardAvoidingView 
-        className="flex-1 bg-white"
+        className="flex-1 bg-gray-50"
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View className="flex-1 px-6 pt-20">
-          <View className="mb-8">
+        <View className="flex-1 justify-center px-6">
+          <View className="max-w-sm mx-auto w-full">
             <TouchableOpacity onPress={goBack} className="mb-4">
               <Text className="text-gray-600">← Back</Text>
             </TouchableOpacity>
             
-            <Text className="text-3xl font-bold text-gray-900 mb-2">
+            <Text className="text-3xl font-bold text-center mb-2 text-gray-900">
               Welcome back
             </Text>
-            <Text className="text-gray-600 text-lg mb-2">
+            <Text className="text-center mb-2 text-gray-600">
               Signing in as
             </Text>
-            <Text className="text-black font-medium">
+            <Text className="text-center mb-8 text-black font-medium">
               {userEmail}
             </Text>
-          </View>
 
-          <View className="mb-6">
-            <FormInput
-              control={signInForm.control}
-              name="password"
-              label="Password"
-              placeholder="Enter your password"
-              secureTextEntry
-              autoComplete="password"
-              autoFocus
-              editable={true}
-              selectTextOnFocus={true}
-              key={`signin-password-${authStep}`}
-            />
-          </View>
+            <View className="mb-4">
+              <FormInput
+                control={signInForm.control}
+                name="password"
+                placeholder="Enter your password"
+                secureTextEntry
+                autoComplete="password"
+                autoFocus
+                editable={true}
+                selectTextOnFocus={true}
+                key={`signin-password-${authStep}`}
+              />
+            </View>
 
-          <TouchableOpacity
-            onPress={signInForm.handleSubmit(handleSignIn)}
-            disabled={isLoading}
-            className={`w-full py-4 rounded-lg mb-4 ${
-              isLoading ? 'bg-gray-300' : 'bg-black'
-            }`}
-          >
-            <Text className={`text-center font-semibold ${
-              isLoading ? 'text-gray-500' : 'text-white'
-            }`}>
-              {isLoading ? 'Signing in...' : 'Sign In'}
-            </Text>
-          </TouchableOpacity>
-
-          <View className="flex-row justify-center">
             <TouchableOpacity
-              onPress={() => router.push('/(auth)/forgot-password')}
+              onPress={signInForm.handleSubmit(handleSignIn)}
+              disabled={isLoading}
+              className={`rounded-lg py-4 items-center mb-4 ${
+                isLoading ? 'bg-gray-300' : 'bg-black'
+              }`}
             >
-              <Text className="text-black font-medium">Forgot password?</Text>
+              <Text className={`font-semibold ${
+                isLoading ? 'text-gray-500' : 'text-white'
+              }`}>
+                {isLoading ? 'Signing in...' : 'Sign In'}
+              </Text>
             </TouchableOpacity>
+
+            <View className="flex-row justify-center">
+              <TouchableOpacity
+                onPress={() => router.push('/(auth)/forgot-password')}
+              >
+                <Text className="text-sm font-semibold">Forgot password?</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -430,35 +454,33 @@ export default function ContinueWithAuth() {
   if (authStep === 'signup') {
     return (
       <KeyboardAvoidingView 
-        className="flex-1 bg-white"
+        className="flex-1 bg-gray-50"
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View className="flex-1 px-6 pt-20">
-          <View className="mb-8">
+        <View className="flex-1 justify-center px-6">
+          <View className="max-w-sm mx-auto w-full">
             <TouchableOpacity onPress={goBack} className="mb-4">
               <Text className="text-gray-600">← Back</Text>
             </TouchableOpacity>
             
-            <Text className="text-3xl font-bold text-gray-900 mb-2">
+            <Text className="text-3xl font-bold text-center mb-2 text-gray-900">
               Create your account
             </Text>
-            <Text className="text-gray-600 text-lg mb-2">
+            <Text className="text-center mb-2 text-gray-600">
               Creating account for
             </Text>
-            <Text className="text-black font-medium">
+            <Text className="text-center mb-8 text-black font-medium">
               {userEmail}
             </Text>
-          </View>
 
-          <View className="space-y-4 mb-6">
-            <View className="flex-row space-x-3">
+            <View className="flex-row gap-3 mb-4">
               <View className="flex-1">
                 <FormInput
                   control={signUpForm.control}
                   name="firstName"
-                  label="First name"
                   placeholder="First name"
                   autoComplete="given-name"
+                  autoCapitalize="words"
                   autoFocus
                 />
               </View>
@@ -466,43 +488,59 @@ export default function ContinueWithAuth() {
                 <FormInput
                   control={signUpForm.control}
                   name="lastName"
-                  label="Last name"
                   placeholder="Last name"
                   autoComplete="family-name"
+                  autoCapitalize="words"
                 />
               </View>
             </View>
 
-            <FormInput
-              control={signUpForm.control}
-              name="password"
-              label="Password"
-              placeholder="Create a password"
-              secureTextEntry
-              autoComplete="new-password"
-              editable={true}
-              selectTextOnFocus={true}
-              key={`signup-password-${authStep}`}
-            />
+            <View className="mb-4">
+              <FormInput
+                control={signUpForm.control}
+                name="password"
+                placeholder="Create a password"
+                secureTextEntry
+                autoComplete="new-password"
+                editable={true}
+                selectTextOnFocus={true}
+                key={`signup-password-${authStep}`}
+              />
+            </View>
+
+            <View className="mb-4">
+              <Text className="text-xs text-gray-600 text-center leading-relaxed">
+                By continuing, you agree to our{' '}
+                <Text 
+                  className="underline" 
+                  onPress={openTerms}
+                >
+                  Terms of Service
+                </Text>
+                {' '}and{' '}
+                <Text 
+                  className="underline" 
+                  onPress={openPrivacy}
+                >
+                  Privacy Policy
+                </Text>
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={signUpForm.handleSubmit(handleSignUp)}
+              disabled={isLoading}
+              className={`rounded-lg py-4 items-center mb-6 ${
+                isLoading ? 'bg-gray-300' : 'bg-black'
+              }`}
+            >
+              <Text className={`font-semibold ${
+                isLoading ? 'text-gray-500' : 'text-white'
+              }`}>
+                {isLoading ? 'Creating account...' : 'Create Account'}
+              </Text>
+            </TouchableOpacity>
           </View>
-
-          <TouchableOpacity
-            onPress={signUpForm.handleSubmit(handleSignUp)}
-            disabled={isLoading}
-            className={`w-full py-4 rounded-lg mb-4 ${
-              isLoading ? 'bg-gray-300' : 'bg-black'
-            }`}
-          >
-            <Text className={`text-center font-semibold ${
-              isLoading ? 'text-gray-500' : 'text-white'
-            }`}>
-              {isLoading ? 'Creating account...' : 'Create Account'}
-            </Text>
-          </TouchableOpacity>
-
-          <Text className="text-center text-gray-600 text-sm">
-            By creating an account, you agree to our Terms of Service and Privacy Policy
-          </Text>
         </View>
       </KeyboardAvoidingView>
     )
@@ -512,56 +550,58 @@ export default function ContinueWithAuth() {
   if (authStep === 'verify') {
     return (
       <KeyboardAvoidingView 
-        className="flex-1 bg-white"
+        className="flex-1 bg-gray-50"
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View className="flex-1 px-6 pt-20">
-          <View className="mb-8">
+        <View className="flex-1 justify-center px-6">
+          <View className="max-w-sm mx-auto w-full">
             <TouchableOpacity onPress={goBack} className="mb-4">
               <Text className="text-gray-600">← Back</Text>
             </TouchableOpacity>
             
-            <Text className="text-3xl font-bold text-gray-900 mb-2">
+            <Text className="text-3xl font-bold text-center mb-2 text-gray-900">
               Verify your email
             </Text>
-            <Text className="text-gray-600 text-lg">
+            <Text className="text-center mb-8 text-gray-600">
               We sent a verification code to {userEmail}
             </Text>
+
+            <View className="mb-4">
+              <FormInput
+                control={verificationForm.control}
+                name="code"
+                placeholder="Enter verification code"
+                keyboardType="number-pad"
+                autoFocus
+                maxLength={6}
+                autoComplete="one-time-code"
+              />
+            </View>
+
+            <TouchableOpacity
+              onPress={verificationForm.handleSubmit(handleVerification)}
+              disabled={isLoading}
+              className={`rounded-lg py-4 items-center mb-6 ${
+                isLoading ? 'bg-gray-300' : 'bg-black'
+              }`}
+            >
+              <Text className={`font-semibold ${
+                isLoading ? 'text-gray-500' : 'text-white'
+              }`}>
+                {isLoading ? 'Verifying...' : 'Verify Email'}
+              </Text>
+            </TouchableOpacity>
+
+            <View className="flex-row justify-center">
+              <Text className="text-gray-600 text-sm">Didn&apos;t receive a code? </Text>
+              <TouchableOpacity
+                onPress={() => signUp?.prepareEmailAddressVerification({ strategy: 'email_code' })}
+                disabled={isLoading}
+              >
+                <Text className="text-sm font-semibold">Resend code</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-
-          <View className="mb-6">
-            <FormInput
-              control={verificationForm.control}
-              name="code"
-              label="Verification code"
-              placeholder="Enter 6-digit code"
-              keyboardType="number-pad"
-              autoFocus
-            />
-          </View>
-
-          <TouchableOpacity
-            onPress={verificationForm.handleSubmit(handleVerification)}
-            disabled={isLoading}
-            className={`w-full py-4 rounded-lg mb-4 ${
-              isLoading ? 'bg-gray-300' : 'bg-black'
-            }`}
-          >
-            <Text className={`text-center font-semibold ${
-              isLoading ? 'text-gray-500' : 'text-white'
-            }`}>
-              {isLoading ? 'Verifying...' : 'Verify Email'}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => signUp?.prepareEmailAddressVerification({ strategy: 'email_code' })}
-            disabled={isLoading}
-          >
-            <Text className="text-center text-black font-medium">
-              Resend code
-            </Text>
-          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     )
