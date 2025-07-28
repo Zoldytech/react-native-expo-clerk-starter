@@ -150,7 +150,7 @@ export default function SecuritySection({ user }: SecuritySectionProps) {
           
           <TouchableOpacity
             onPress={handleUpdatePassword}
-            className="bg-blue-500 rounded-lg px-4 py-2"
+            className="bg-black rounded-lg px-4 py-2"
           >
             <Text className="text-white font-medium">Update password</Text>
           </TouchableOpacity>
@@ -169,10 +169,10 @@ export default function SecuritySection({ user }: SecuritySectionProps) {
             onPress={handleDeleteAccount}
             disabled={isDeleting}
             className={`rounded-lg px-4 py-2 ${
-              isDeleting ? 'bg-red-300' : 'bg-red-500'
+              isDeleting ? 'bg-red-500' : 'bg-white border border-black'
             }`}
           >
-            <Text className="text-white font-medium">
+            <Text className="font-medium">
               {isDeleting ? 'Deleting...' : 'Delete account'}
             </Text>
           </TouchableOpacity>
@@ -191,7 +191,7 @@ export default function SecuritySection({ user }: SecuritySectionProps) {
         <View className="flex-1 bg-gray-50">
           <View className="flex-row justify-between items-center p-4 border-b border-gray-200 bg-white">
             <TouchableOpacity onPress={() => setShowPasswordModal(false)}>
-              <Text className="text-blue-500 font-medium">Cancel</Text>
+              <Text className="text-gray-700 font-medium">Cancel</Text>
             </TouchableOpacity>
             <Text className="text-lg font-semibold">Update Password</Text>
             <TouchableOpacity 
@@ -199,7 +199,7 @@ export default function SecuritySection({ user }: SecuritySectionProps) {
               disabled={isUpdating}
             >
               <Text className={`font-medium ${
-                isUpdating ? 'text-gray-400' : 'text-blue-500'
+                isUpdating ? 'text-gray-400' : 'text-gray-700'
               }`}>
                 {isUpdating ? 'Updating...' : 'Save'}
               </Text>

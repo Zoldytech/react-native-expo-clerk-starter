@@ -236,9 +236,9 @@ export default function ProfileHeader({ user }: ProfileHeaderProps) {
         <TouchableOpacity
           onPress={handleUpdateProfile}
           disabled={isUpdating || isUploadingAvatar}
-          className="bg-gray-100 rounded-lg px-4 py-2"
+          className="bg-black rounded-lg px-4 py-2"
         >
-          <Text className="text-gray-700 font-medium">
+          <Text className="text-white font-medium">
             {isUpdating ? 'Updating...' : 'Update profile'}
           </Text>
         </TouchableOpacity>
