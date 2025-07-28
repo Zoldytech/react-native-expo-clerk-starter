@@ -74,6 +74,20 @@ export default function ProfileSection({ user }: ProfileSectionProps) {
   const [pendingEmailVerification, setPendingEmailVerification] = useState<any>(null)
   const [pendingEmailAddress, setPendingEmailAddress] = useState('')
 
+  // Get connected providers to hide them from connect options
+  const connectedProviders = user.externalAccounts?.map(account => account.provider) || []
+  
+  // Define available providers
+  const availableProviders = [
+    { id: 'google', name: 'Google', icon: 'google', color: '#4285F4', description: 'Connect your Google account' },
+    { id: 'apple', name: 'Apple', icon: 'apple', color: '#000000', description: 'Connect your Apple ID' },
+  ]
+  
+  // Filter out already connected providers
+  const unconnectedProviders = availableProviders.filter(
+    provider => !connectedProviders.includes(provider.id)
+  )
+
   const {
     control: emailControl,
     handleSubmit: handleEmailSubmit,
@@ -401,13 +415,16 @@ export default function ProfileSection({ user }: ProfileSectionProps) {
         
         <ConnectedAccounts user={user} />
         
-        <TouchableOpacity
-          onPress={showConnectAccountOptions}
-          className="flex-row items-center mt-4"
-        >
-          <FontAwesome name="plus" size={16} color="#374151" />
-          <Text className="text-gray-700 font-medium ml-2">Connect account</Text>
-        </TouchableOpacity>
+        {/* Only show Connect account button if there are unconnected providers */}
+        {unconnectedProviders.length > 0 && (
+          <TouchableOpacity
+            onPress={showConnectAccountOptions}
+            className="flex-row items-center mt-4"
+          >
+            <FontAwesome name="plus" size={16} color="#374151" />
+            <Text className="text-gray-700 font-medium ml-2">Connect account</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Bottom spacing */}
@@ -575,41 +592,37 @@ export default function ProfileSection({ user }: ProfileSectionProps) {
                Choose a provider to connect to your account
              </Text>
 
-             {/* Google Option */}
-             <TouchableOpacity
-               onPress={() => handleConnectProvider('google')}
-               disabled={isConnecting}
-               className={`flex-row items-center p-4 bg-white rounded-lg border border-gray-200 mb-4 ${
-                 isConnecting ? 'opacity-50' : 'active:bg-gray-50'
-               }`}
-             >
-               <View className="w-8 h-8 items-center justify-center mr-4">
-                 <FontAwesome name="google" size={20} color="#4285F4" />
-               </View>
-               <View className="flex-1">
-                 <Text className="text-gray-900 font-medium">Google</Text>
-                 <Text className="text-gray-600 text-sm">Connect your Google account</Text>
-               </View>
-               <FontAwesome name="chevron-right" size={16} color="#9CA3AF" />
-             </TouchableOpacity>
+             {/* Dynamically render unconnected providers */}
+             {unconnectedProviders.map((provider, index) => (
+               <TouchableOpacity
+                 key={provider.id}
+                 onPress={() => handleConnectProvider(provider.id as 'google' | 'apple')}
+                 disabled={isConnecting}
+                 className={`flex-row items-center p-4 bg-white rounded-lg border border-gray-200 ${
+                   index < unconnectedProviders.length - 1 ? 'mb-4' : ''
+                 } ${isConnecting ? 'opacity-50' : 'active:bg-gray-50'}`}
+               >
+                 <View className="w-8 h-8 items-center justify-center mr-4">
+                   <FontAwesome name={provider.icon as any} size={20} color={provider.color} />
+                 </View>
+                 <View className="flex-1">
+                   <Text className="text-gray-900 font-medium">{provider.name}</Text>
+                   <Text className="text-gray-600 text-sm">{provider.description}</Text>
+                 </View>
+                 <FontAwesome name="chevron-right" size={16} color="#9CA3AF" />
+               </TouchableOpacity>
+             ))}
 
-             {/* Apple Option */}
-             <TouchableOpacity
-               onPress={() => handleConnectProvider('apple')}
-               disabled={isConnecting}
-               className={`flex-row items-center p-4 bg-white rounded-lg border border-gray-200 ${
-                 isConnecting ? 'opacity-50' : 'active:bg-gray-50'
-               }`}
-             >
-               <View className="w-8 h-8 items-center justify-center mr-4">
-                 <FontAwesome name="apple" size={20} color="#000000" />
+             {/* Show message if all providers are connected */}
+             {unconnectedProviders.length === 0 && (
+               <View className="items-center py-8">
+                 <FontAwesome name="check-circle" size={48} color="#10B981" />
+                 <Text className="text-gray-900 font-medium mt-4 mb-2">All Set!</Text>
+                 <Text className="text-gray-600 text-center">
+                   You&apos;ve connected all available account providers.
+                 </Text>
                </View>
-               <View className="flex-1">
-                 <Text className="text-gray-900 font-medium">Apple</Text>
-                 <Text className="text-gray-600 text-sm">Connect your Apple ID</Text>
-               </View>
-               <FontAwesome name="chevron-right" size={16} color="#9CA3AF" />
-             </TouchableOpacity>
+             )}
 
              {isConnecting && (
                <View className="mt-6 items-center">
