@@ -1,8 +1,8 @@
 import React from 'react'
 import { Text, TouchableOpacity, View } from 'react-native'
 
-import { Redirect, useRouter } from 'expo-router'
 import { SignedIn, SignedOut } from '@clerk/clerk-expo'
+import { Redirect, useRouter } from 'expo-router'
 
 export default function WelcomeScreen() {
   const router = useRouter()
@@ -26,6 +26,13 @@ export default function WelcomeScreen() {
               Connect, share, and discover amazing content with your community.
             </Text>
             
+            <TouchableOpacity 
+              onPress={() => router.push('/(auth)/auth')}
+              className="bg-black rounded-lg py-4 items-center mb-4"
+            >
+              <Text className="text-white font-semibold">Welcome</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity 
               onPress={() => router.push('/(auth)/sign-in')}
               className="bg-black rounded-lg py-4 items-center mb-4"
