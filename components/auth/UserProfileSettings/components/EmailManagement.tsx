@@ -193,8 +193,8 @@ export default function EmailManagement({ user }: EmailManagementProps) {
                 <View className="flex-row items-center mt-1">
                   {isVerified ? (
                     <View className="flex-row items-center mr-3">
-                      <FontAwesome name="check-circle" size={14} color="#10B981" />
-                      <Text className="text-green-600 text-sm ml-1">Verified</Text>
+                      <FontAwesome name="check-circle" size={14} color="#374151" />
+                      <Text className="text-gray-700 text-sm ml-1">Verified</Text>
                     </View>
                   ) : (
                     <TouchableOpacity 
@@ -205,21 +205,21 @@ export default function EmailManagement({ user }: EmailManagementProps) {
                     </TouchableOpacity>
                   )}
                   {isPrimary && (
-                    <View className="bg-blue-100 px-2 py-1 rounded">
-                      <Text className="text-blue-700 text-xs font-medium">Primary</Text>
+                    <View className="bg-gray-100 px-2 py-1 rounded">
+                      <Text className="text-gray-700 text-xs font-medium">Primary</Text>
                     </View>
                   )}
                 </View>
               </View>
               
-              {user.emailAddresses.length > 1 && (
-                <TouchableOpacity 
-                  className="p-2"
-                  onPress={() => clerkEmail && handleDeleteEmail(clerkEmail)}
-                >
-                  <FontAwesome name="trash" size={16} color="#EF4444" />
-                </TouchableOpacity>
-              )}
+                             {user.emailAddresses.length > 1 && (
+                 <TouchableOpacity 
+                   className="p-2"
+                   onPress={() => clerkEmail && handleDeleteEmail(clerkEmail)}
+                 >
+                   <FontAwesome name="trash" size={16} color="#374151" />
+                 </TouchableOpacity>
+               )}
             </View>
           )
         })}

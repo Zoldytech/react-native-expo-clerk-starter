@@ -1,7 +1,8 @@
 import React from 'react'
-import { View, Text, TouchableOpacity } from 'react-native'
+import { View, Text, TouchableOpacity, Alert } from 'react-native'
 
 import { FontAwesome } from '@expo/vector-icons'
+import { useUser } from '@clerk/clerk-expo'
 
 interface ConnectedAccountsProps {
   user: {
@@ -15,6 +16,45 @@ interface ConnectedAccountsProps {
 }
 
 export default function ConnectedAccounts({ user }: ConnectedAccountsProps) {
+  const { user: clerkUser } = useUser()
+
+  const handleDisconnectAccount = async (accountId: string, provider: string) => {
+    if (!clerkUser) return
+
+    Alert.alert(
+      'Disconnect Account',
+      `Are you sure you want to disconnect your ${getProviderName(provider)} account?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Disconnect',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Find the external account and destroy it
+              const externalAccount = clerkUser.externalAccounts.find(
+                (account: any) => account.id === accountId
+              )
+              
+              if (externalAccount) {
+                await (externalAccount as any).destroy()
+                Alert.alert('Success', `${getProviderName(provider)} account disconnected successfully.`)
+                // Reload user to refresh the UI
+                await clerkUser.reload()
+              }
+            } catch (error: any) {
+              console.error('Disconnect account error:', error)
+              Alert.alert(
+                'Error',
+                error.errors?.[0]?.longMessage || `Failed to disconnect ${provider} account.`
+              )
+            }
+          }
+        }
+      ]
+    )
+  }
+
   if (!user.externalAccounts || user.externalAccounts.length === 0) {
     return (
       <Text className="text-gray-500 italic">No connected accounts</Text>
@@ -76,8 +116,11 @@ export default function ConnectedAccounts({ user }: ConnectedAccountsProps) {
             </View>
           </View>
           
-          <TouchableOpacity className="p-2">
-            <FontAwesome name="ellipsis-h" size={16} color="#6B7280" />
+          <TouchableOpacity 
+            className="p-2"
+            onPress={() => handleDisconnectAccount(account.id, account.provider)}
+          >
+            <FontAwesome name="unlink" size={16} color="#374151" />
           </TouchableOpacity>
         </View>
       ))}

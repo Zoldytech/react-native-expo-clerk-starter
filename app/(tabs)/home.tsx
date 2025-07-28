@@ -32,7 +32,7 @@ export default function HomeScreen() {
         <View className="items-center space-y-3">
           <TouchableOpacity
             onPress={() => setShowProfileSettings(true)}
-            className="bg-blue-500 rounded-lg py-3 px-6 flex-row items-center"
+            className="bg-black rounded-lg py-3 px-6 flex-row items-center"
           >
             <FontAwesome name="user" size={16} color="white" />
             <Text className="text-white font-semibold ml-2">Profile Settings</Text>
