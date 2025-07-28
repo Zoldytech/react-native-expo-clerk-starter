@@ -1,40 +1,29 @@
-import React, { useState } from 'react'
+import React from 'react'
 import {
-  Text,
-  KeyboardAvoidingView,
-  Platform,
-  View,
-  TouchableOpacity,
+    KeyboardAvoidingView,
+    Platform,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native'
 
+import { isClerkAPIResponseError, useSignUp } from '@clerk/clerk-expo'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'expo-router'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { isClerkAPIResponseError, useSignUp } from '@clerk/clerk-expo'
 
 import FormInput from '@/components/FormInput'
 
 // Verification validation schema
 const verifySchema = z.object({
-  code: z.string({ message: 'Verification code is required' }).length(6, 'Code must be 6 digits'),
+  code: z.string({ message: 'Verification code is required' }).min(6, 'Code must be 6 digits'),
 })
 
 type VerifyFields = z.infer<typeof verifySchema>
 
-const mapClerkErrorToFormField = (error: any) => {
-  switch (error.meta?.paramName) {
-    case 'code':
-      return 'code'
-    default:
-      return 'root'
-  }
-}
-
 export default function VerifyScreen() {
   const router = useRouter()
-  const [isResending, setIsResending] = useState(false)
-  const [resendSuccess, setResendSuccess] = useState(false)
   
   const {
     control,
@@ -48,59 +37,41 @@ export default function VerifyScreen() {
   const { signUp, isLoaded, setActive } = useSignUp()
 
   const onVerify = async (data: VerifyFields) => {
-    if (!isLoaded) return
+    if (!isLoaded || !signUp) return
 
     try {
+      // Use the code the user provided to attempt verification
       const signUpAttempt = await signUp.attemptEmailAddressVerification({
         code: data.code,
       })
 
+      // If verification was completed, set the session to active
+      // and redirect the user
       if (signUpAttempt.status === 'complete') {
-        setActive({ session: signUpAttempt.createdSessionId })
-        router.replace('/(tabs)/home')
+        await setActive({ session: signUpAttempt.createdSessionId })
+        router.replace('/(tabs)' as any)
       } else {
-        console.log('Verification failed')
-        console.log(signUpAttempt)
-        setError('root', { message: 'Could not complete the sign up' })
+        // If the status is not complete, check why. User may need to
+        // complete further steps.
+        console.error(JSON.stringify(signUpAttempt, null, 2))
+        setError('root', { message: 'Verification failed. Please try again.' })
       }
     } catch (err) {
-      if (isClerkAPIResponseError(err)) {
-        err.errors.forEach((error) => {
-          const fieldName = mapClerkErrorToFormField(error)
-          setError(fieldName, {
-            message: error.longMessage,
-          })
-        })
-      } else {
-        setError('root', { message: 'Unknown error' })
-      }
-    }
-  }
-
-  const onResendCode = async () => {
-    if (!isLoaded || !signUp) return
-    setIsResending(true)
-    setResendSuccess(false)
-
-    try {
-      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' })
-      setResendSuccess(true)
+      console.error('Verification error:', JSON.stringify(err, null, 2))
       
-      // Hide success message after 3 seconds
-      setTimeout(() => {
-        setResendSuccess(false)
-      }, 3000)
-    } catch (err) {
-      console.error('Resend code error:', JSON.stringify(err, null, 2))
       if (isClerkAPIResponseError(err)) {
         err.errors.forEach((error) => {
-          setError('root', { message: error.longMessage })
+          if (error.code === 'verification_failed') {
+            setError('code', {
+              message: 'Invalid verification code. Please try again.',
+            })
+          } else {
+            setError('root', { message: error.longMessage || error.message })
+          }
         })
       } else {
-        setError('root', { message: 'Failed to resend code. Please try again.' })
+        setError('root', { message: 'Unknown error occurred' })
       }
-    } finally {
-      setIsResending(false)
     }
   }
 
@@ -112,58 +83,45 @@ export default function VerifyScreen() {
       <View className="flex-1 justify-center px-6">
         <View className="max-w-sm mx-auto w-full">
           <Text className="text-3xl font-bold text-center mb-2 text-gray-900">
-            Verify your email
+            Verify Your Email
           </Text>
-          <Text className="text-center mb-8 text-gray-600 leading-relaxed">
-            We sent a verification code to your email address.
-            Enter the code below to complete your account setup.
+          <Text className="text-center mb-8 text-gray-600">
+            We sent a verification code to your email address
           </Text>
 
           <View className="mb-4">
             <FormInput
               control={control}
               name="code"
-              placeholder="Enter 6-digit code"
+              placeholder="Enter verification code"
+              autoFocus
               keyboardType="number-pad"
               maxLength={6}
-              autoFocus
               autoComplete="one-time-code"
-              className="text-center"
             />
           </View>
 
           {errors.root && (
             <Text className="text-red-500 text-sm text-center mb-4">
-              Verification failed. Please try again.
+              {errors.root.message}
             </Text>
           )}
 
           <TouchableOpacity 
             onPress={handleSubmit(onVerify)}
-            className="bg-black rounded-lg py-4 items-center mb-4"
+            className="bg-black rounded-lg py-4 items-center mb-6"
           >
             <Text className="text-white font-semibold">
-              Verify
+              Verify Email
             </Text>
           </TouchableOpacity>
 
-          {resendSuccess && (
-            <Text className="text-green-600 text-sm text-center mb-4">
-              ✓ Verification code sent successfully!
-            </Text>
-          )}
-
-          <TouchableOpacity 
-            onPress={onResendCode}
-            disabled={isResending}
-            className={`border border-black rounded-lg py-4 items-center ${
-              isResending ? 'opacity-50' : ''
-            }`}
-          >
-            <Text className="font-semibold">
-              {isResending ? 'Sending...' : 'Resend Code'}
-            </Text>
-          </TouchableOpacity>
+          <View className="flex-row justify-center">
+            <Text className="text-gray-600 text-sm">Didn&apos;t receive a code? </Text>
+            <TouchableOpacity onPress={() => router.back()}>
+              <Text className="text-sm font-semibold">Go back</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </KeyboardAvoidingView>

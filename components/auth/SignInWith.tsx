@@ -1,10 +1,11 @@
-import React, { useEffect, useCallback, useState } from 'react'
-import { TouchableOpacity, Text, Alert } from 'react-native'
+import React, { useCallback, useEffect, useState } from 'react'
+import { Alert, Text, TouchableOpacity } from 'react-native'
 
-import * as WebBrowser from 'expo-web-browser'
-import * as AuthSession from 'expo-auth-session'
-import { useSSO, isClerkAPIResponseError } from '@clerk/clerk-expo'
+import { isClerkAPIResponseError, useSSO } from '@clerk/clerk-expo'
 import { FontAwesome } from '@expo/vector-icons'
+import * as AuthSession from 'expo-auth-session'
+import { useRouter } from 'expo-router'
+import * as WebBrowser from 'expo-web-browser'
 
 type SignInWithProps = {
   strategy: 'oauth_google' | 'oauth_apple'
@@ -36,6 +37,7 @@ const strategyLabels = {
 export default function SignInWith({ strategy, variant = 'icon' }: SignInWithProps) {
   useWarmUpBrowser()
   const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
 
   // Use the `useSSO()` hook to access the `startSSOFlow()` method
   const { startSSOFlow } = useSSO()
@@ -46,27 +48,30 @@ export default function SignInWith({ strategy, variant = 'icon' }: SignInWithPro
 
     try {
       // Start the authentication process by calling `startSSOFlow()`
-      const { createdSessionId, setActive } =
-        await startSSOFlow({
-          strategy,
-          // For web, defaults to current path
-          // For native, you must pass a scheme, like AuthSession.makeRedirectUri({ scheme, path })
-          redirectUrl: AuthSession.makeRedirectUri(),
-        })
+      const { createdSessionId, setActive, signIn, signUp } = await startSSOFlow({
+        strategy,
+        // For web, defaults to current path
+        // For native, you must pass a scheme, like AuthSession.makeRedirectUri({ scheme, path })
+        redirectUrl: AuthSession.makeRedirectUri(),
+      })
 
-      // If sign in was successful, set the active session
+      // If sign in was successful, set the active session and redirect
       if (createdSessionId) {
         setActive!({ session: createdSessionId })
+        router.replace('/(tabs)' as any)
       } else {
-        // If there is no `createdSessionId`,
-        // there are missing requirements, such as MFA
-        // Use the `signIn` or `signUp` returned from `startSSOFlow`
-        // to handle next steps
-        Alert.alert(
-          'Additional Steps Required',
-          'Please complete the additional security steps to continue.',
-          [{ text: 'OK' }]
-        )
+        // If there is no `createdSessionId`, check if we have signIn or signUp objects
+        // This means the flow started but needs completion
+        if (signIn || signUp) {
+          Alert.alert(
+            'Additional Steps Required',
+            'Please complete the additional security steps to continue.',
+            [{ text: 'OK' }]
+          )
+        } else {
+          // No session, no signIn/signUp objects - flow was likely cancelled
+          console.log('OAuth flow was cancelled or incomplete')
+        }
       }
     } catch (err) {
       console.error('OAuth error:', JSON.stringify(err, null, 2))
@@ -81,13 +86,18 @@ export default function SignInWith({ strategy, variant = 'icon' }: SignInWithPro
         }
       } else if (err instanceof Error) {
         // Handle general errors
-        if (err.message.includes('cancelled') || err.message.includes('dismissed')) {
-          // User cancelled the OAuth flow, don't show error
+        if (err.message.includes('cancelled') || 
+            err.message.includes('dismissed') || 
+            err.message.includes('user_cancelled')) {
+          // User cancelled the OAuth flow, don't show error and don't mark as connected
+          console.log('User cancelled OAuth flow')
+          setIsLoading(false)
           return
         }
         errorMessage = err.message
       }
       
+      // Only show error for actual failures, not cancellations
       Alert.alert(
         `${strategyLabels[strategy]} Sign In Failed`,
         errorMessage,
@@ -96,7 +106,7 @@ export default function SignInWith({ strategy, variant = 'icon' }: SignInWithPro
     } finally {
       setIsLoading(false)
     }
-  }, [strategy, startSSOFlow, isLoading])
+  }, [strategy, startSSOFlow, isLoading, router])
 
   if (variant === 'button') {
     return (

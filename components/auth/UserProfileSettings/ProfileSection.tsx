@@ -1,39 +1,40 @@
+import * as WebBrowser from 'expo-web-browser'
 import React, { useState } from 'react'
-import { View, Text, TouchableOpacity, Alert, ActionSheetIOS, Platform, Modal } from 'react-native'
+import { Alert, Modal, Text, TouchableOpacity, View } from 'react-native'
 
 import { useUser } from '@clerk/clerk-expo'
 import { FontAwesome } from '@expo/vector-icons'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
-import { zodResolver } from '@hookform/resolvers/zod'
 
 import FormInput from '@/components/FormInput'
-import ProfileHeader from './components/ProfileHeader'
+import ConnectedAccounts from './components/ConnectedAccounts'
 import EmailManagement from './components/EmailManagement'
 import PhoneManagement from './components/PhoneManagement'
-import ConnectedAccounts from './components/ConnectedAccounts'
+import ProfileHeader from './components/ProfileHeader'
 
 interface ProfileSectionProps {
   user: {
     id: string
-    emailAddresses: Array<{
+    emailAddresses: {
       id: string
       emailAddress: string
       verification?: { status: string }
-    }>
+    }[]
     primaryEmailAddressId?: string | null
-    phoneNumbers?: Array<{
+    phoneNumbers?: {
       id: string
       phoneNumber: string
       verification?: { status: string }
-    }>
+    }[]
     primaryPhoneNumberId?: string | null
-    externalAccounts?: Array<{
+    externalAccounts?: {
       id: string
       provider: string
       emailAddress?: string
       username?: string
-    }>
+    }[]
     firstName?: string
     lastName?: string
     fullName?: string
@@ -242,22 +243,109 @@ export default function ProfileSection({ user }: ProfileSectionProps) {
     setShowConnectModal(false)
 
     try {
-      // For OAuth connections, we typically need to redirect to Clerk's OAuth flow
-      // This would involve using Clerk's OAuth methods and proper redirect handling
+      const strategy = provider === 'google' ? 'oauth_google' : 'oauth_apple'
       
-      // Note: This typically requires proper OAuth setup and redirects
-      // For now, we'll show a message that this requires additional setup
-      Alert.alert(
-        'OAuth Setup Required',
-        `To connect your ${provider === 'google' ? 'Google' : 'Apple'} account, additional OAuth configuration is needed in your Clerk dashboard. This includes setting up OAuth apps and redirect URIs.`,
-        [{ text: 'OK' }]
-      )
+      // Create external account for existing user (correct method for connecting accounts)
+      const externalAccount = await clerkUser.createExternalAccount({
+        strategy: strategy as any,
+        redirectUrl: 'exp://127.0.0.1:19000/--/oauth-callback',
+      })
+
+      // Check if we need to complete OAuth flow in browser
+      if (externalAccount.verification?.externalVerificationRedirectURL) {
+        // Open OAuth flow in browser
+        const result = await WebBrowser.openAuthSessionAsync(
+          externalAccount.verification.externalVerificationRedirectURL.toString(),
+          'exp://127.0.0.1:19000/--/oauth-callback'
+        )
+
+        if (result.type === 'success') {
+          // Wait a moment for Clerk to process the OAuth callback
+          await new Promise(resolve => setTimeout(resolve, 1000))
+          
+          // Reload user to get updated external accounts
+          await clerkUser.reload()
+          
+          // Verify the account was actually connected by checking if it appears in external accounts
+          const connectedAccount = clerkUser.externalAccounts.find(
+            account => account.provider === provider
+          )
+          
+          if (connectedAccount) {
+            Alert.alert(
+              'Account Connected',
+              `Your ${provider === 'google' ? 'Google' : 'Apple'} account has been connected successfully!`,
+              [{ text: 'OK' }]
+            )
+          } else {
+            // Connection didn't complete properly, clean up
+            console.log('Connection verification failed')
+            Alert.alert(
+              'Connection Failed',
+              `Failed to verify ${provider} account connection. Please try again.`,
+              [{ text: 'OK' }]
+            )
+          }
+        } else if (result.type === 'cancel') {
+          // User cancelled - remove the pending external account
+          try {
+            await externalAccount.destroy()
+          } catch (cleanupError) {
+            console.log('Cleanup error after cancellation:', cleanupError)
+          }
+          console.log('User cancelled OAuth flow')
+          // Don't show error for cancellation
+        } else {
+          // OAuth flow failed - clean up
+          try {
+            await externalAccount.destroy()
+          } catch (cleanupError) {
+            console.log('Cleanup error after failure:', cleanupError)
+          }
+          throw new Error('OAuth flow was dismissed or failed')
+        }
+      } else {
+        // Account connected immediately (rare case)
+        await clerkUser.reload()
+        Alert.alert(
+          'Account Connected',
+          `Your ${provider === 'google' ? 'Google' : 'Apple'} account has been connected successfully!`,
+          [{ text: 'OK' }]
+        )
+      }
     } catch (error: any) {
       console.error('Connect account error:', error)
-      Alert.alert(
-        'Error',
-        error.errors?.[0]?.longMessage || `Failed to connect ${provider} account. Please try again.`
-      )
+      
+      // Handle specific error cases
+      if (error.errors && error.errors.length > 0) {
+        const firstError = error.errors[0]
+        
+        if (firstError.code === 'external_account_exists') {
+          Alert.alert(
+            'Account Already Connected',
+            `This ${provider} account is already connected to another user or to your account.`,
+            [{ text: 'OK' }]
+          )
+        } else if (firstError.code === 'oauth_access_denied') {
+          Alert.alert(
+            'Access Denied',
+            `You denied access to your ${provider} account. Please try again and grant permission.`,
+            [{ text: 'OK' }]
+          )
+        } else {
+          Alert.alert(
+            'Connection Failed',
+            firstError.longMessage || firstError.message || `Failed to connect ${provider} account.`,
+            [{ text: 'OK' }]
+          )
+        }
+      } else {
+        Alert.alert(
+          'Connection Failed',
+          `Failed to connect ${provider} account. Please try again.`,
+          [{ text: 'OK' }]
+        )
+      }
     } finally {
       setIsConnecting(false)
     }
@@ -333,20 +421,20 @@ export default function ProfileSection({ user }: ProfileSectionProps) {
       >
         <View className="flex-1 bg-gray-50">
           <View className="flex-row justify-between items-center p-4 border-b border-gray-200 bg-white">
-            <TouchableOpacity onPress={() => setShowAddEmailModal(false)}>
-              <Text className="text-blue-500 font-medium">Cancel</Text>
-            </TouchableOpacity>
-            <Text className="text-lg font-semibold">Add Email</Text>
-            <TouchableOpacity 
-              onPress={handleEmailSubmit(handleAddEmail)}
-              disabled={isAddingEmail}
-            >
-              <Text className={`font-medium ${
-                isAddingEmail ? 'text-gray-400' : 'text-blue-500'
-              }`}>
-                {isAddingEmail ? 'Adding...' : 'Add'}
-              </Text>
-            </TouchableOpacity>
+                         <TouchableOpacity onPress={() => setShowAddEmailModal(false)}>
+               <Text className="text-gray-700 font-medium">Cancel</Text>
+             </TouchableOpacity>
+             <Text className="text-lg font-semibold">Add Email</Text>
+             <TouchableOpacity 
+               onPress={handleEmailSubmit(handleAddEmail)}
+               disabled={isAddingEmail}
+             >
+               <Text className={`font-medium ${
+                 isAddingEmail ? 'text-gray-400' : 'text-gray-700'
+               }`}>
+                 {isAddingEmail ? 'Adding...' : 'Add'}
+               </Text>
+             </TouchableOpacity>
           </View>
 
           <View className="p-6">
@@ -377,7 +465,7 @@ export default function ProfileSection({ user }: ProfileSectionProps) {
         <View className="flex-1 bg-gray-50">
           <View className="flex-row justify-between items-center p-4 border-b border-gray-200 bg-white">
             <TouchableOpacity onPress={() => setShowEmailVerificationModal(false)}>
-              <Text className="text-blue-500 font-medium">Cancel</Text>
+              <Text className="text-gray-700 font-medium">Cancel</Text>
             </TouchableOpacity>
             <Text className="text-lg font-semibold">Verify Email</Text>
             <TouchableOpacity 
@@ -385,7 +473,7 @@ export default function ProfileSection({ user }: ProfileSectionProps) {
               disabled={isVerifyingEmail}
             >
               <Text className={`font-medium ${
-                isVerifyingEmail ? 'text-gray-400' : 'text-blue-500'
+                isVerifyingEmail ? 'text-gray-400' : 'text-gray-700'
               }`}>
                 {isVerifyingEmail ? 'Verifying...' : 'Verify'}
               </Text>
@@ -417,7 +505,7 @@ export default function ProfileSection({ user }: ProfileSectionProps) {
               onPress={handleResendEmailVerification}
               className="items-center py-3"
             >
-              <Text className="text-blue-500 font-medium">
+              <Text className="text-gray-700 font-medium">
                 Didn&apos;t receive the code? Resend
               </Text>
             </TouchableOpacity>
@@ -434,7 +522,7 @@ export default function ProfileSection({ user }: ProfileSectionProps) {
         <View className="flex-1 bg-gray-50">
           <View className="flex-row justify-between items-center p-4 border-b border-gray-200 bg-white">
             <TouchableOpacity onPress={() => setShowAddPhoneModal(false)}>
-              <Text className="text-blue-500 font-medium">Cancel</Text>
+              <Text className="text-gray-700 font-medium">Cancel</Text>
             </TouchableOpacity>
             <Text className="text-lg font-semibold">Add Phone</Text>
             <TouchableOpacity 
@@ -442,7 +530,7 @@ export default function ProfileSection({ user }: ProfileSectionProps) {
               disabled={isAddingPhone}
             >
               <Text className={`font-medium ${
-                isAddingPhone ? 'text-gray-400' : 'text-blue-500'
+                isAddingPhone ? 'text-gray-400' : 'text-gray-700'
               }`}>
                 {isAddingPhone ? 'Adding...' : 'Add'}
               </Text>
@@ -476,7 +564,7 @@ export default function ProfileSection({ user }: ProfileSectionProps) {
          <View className="flex-1 bg-gray-50">
            <View className="flex-row justify-between items-center p-4 border-b border-gray-200 bg-white">
              <TouchableOpacity onPress={() => setShowConnectModal(false)}>
-               <Text className="text-blue-500 font-medium">Cancel</Text>
+               <Text className="text-gray-700 font-medium">Cancel</Text>
              </TouchableOpacity>
              <Text className="text-lg font-semibold">Connect Account</Text>
              <View className="w-16" />
