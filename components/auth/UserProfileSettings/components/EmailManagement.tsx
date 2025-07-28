@@ -24,6 +24,11 @@ interface EmailManagementProps {
       verification?: { status: string }
     }>
     primaryEmailAddressId?: string | null
+    phoneNumbers?: Array<{
+      id: string
+      phoneNumber: string
+      verification?: { status: string }
+    }>
   }
 }
 
@@ -107,6 +112,54 @@ export default function EmailManagement({ user }: EmailManagementProps) {
     }
   }
 
+  const handleDeleteEmail = async (emailToDelete: any) => {
+    if (!clerkUser || !emailToDelete) return
+
+    // Check if user has at least one verified email or phone after deletion
+    const otherVerifiedEmails = user.emailAddresses.filter(
+      email => email.id !== emailToDelete.id && email.verification?.status === 'verified'
+    )
+    const verifiedPhones = user.phoneNumbers?.filter(
+      (phone: { id: string; phoneNumber: string; verification?: { status: string } }) => 
+        phone.verification?.status === 'verified'
+    ) || []
+    
+    const hasOtherVerifiedContact = otherVerifiedEmails.length > 0 || verifiedPhones.length > 0
+
+    if (!hasOtherVerifiedContact) {
+      Alert.alert(
+        'Cannot Delete Email',
+        'You must have at least one verified email address or phone number.',
+        [{ text: 'OK' }]
+      )
+      return
+    }
+
+    Alert.alert(
+      'Delete Email Address',
+      `Are you sure you want to delete ${emailToDelete.emailAddress}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await emailToDelete.destroy()
+              Alert.alert('Success', 'Email address deleted successfully.')
+            } catch (error: any) {
+              console.error('Delete email error:', error)
+              Alert.alert(
+                'Error',
+                error.errors?.[0]?.longMessage || 'Failed to delete email address.'
+              )
+            }
+          }
+        }
+      ]
+    )
+  }
+
   if (!user.emailAddresses || user.emailAddresses.length === 0) {
     return (
       <Text className="text-gray-500 italic">No email addresses</Text>
@@ -159,9 +212,14 @@ export default function EmailManagement({ user }: EmailManagementProps) {
                 </View>
               </View>
               
-              <TouchableOpacity className="p-2">
-                <FontAwesome name="ellipsis-h" size={16} color="#6B7280" />
-              </TouchableOpacity>
+              {user.emailAddresses.length > 1 && (
+                <TouchableOpacity 
+                  className="p-2"
+                  onPress={() => clerkEmail && handleDeleteEmail(clerkEmail)}
+                >
+                  <FontAwesome name="trash" size={16} color="#EF4444" />
+                </TouchableOpacity>
+              )}
             </View>
           )
         })}

@@ -59,12 +59,12 @@ export default function UserProfileSettings() {
           showsHorizontalScrollIndicator={false}
           className="px-6"
         >
-          <View className="flex-row space-x-8 py-4">
-            {tabs.map((tab) => (
+          <View className="flex-row py-4">
+            {tabs.map((tab, index) => (
               <TouchableOpacity
                 key={tab.key}
                 onPress={() => setActiveTab(tab.key)}
-                className={`pb-2 ${activeTab === tab.key ? 'border-b-2 border-black' : ''}`}
+                className={`pb-2 ${activeTab === tab.key ? 'border-b-2 border-black' : ''} ${index > 0 ? 'ml-8' : ''}`}
               >
                 <Text
                   className={`font-medium ${
