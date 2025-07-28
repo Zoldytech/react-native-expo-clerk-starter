@@ -38,6 +38,7 @@ interface ProfileSectionProps {
     firstName?: string
     lastName?: string
     fullName?: string
+    username?: string
     imageUrl?: string
   }
 }

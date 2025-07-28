@@ -1,12 +1,12 @@
 import React, { useState } from 'react'
-import { View, Text, TouchableOpacity, Alert, Image, Modal, ActivityIndicator } from 'react-native'
+import { ActivityIndicator, Alert, Image, Modal, Text, TouchableOpacity, View } from 'react-native'
 
-import { FontAwesome } from '@expo/vector-icons'
 import { useUser } from '@clerk/clerk-expo'
-import { useForm } from 'react-hook-form'
-import { z } from 'zod'
+import { FontAwesome } from '@expo/vector-icons'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as ImagePicker from 'expo-image-picker'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
 
 import FormInput from '@/components/FormInput'
 
@@ -14,6 +14,12 @@ import FormInput from '@/components/FormInput'
 const profileUpdateSchema = z.object({
   firstName: z.string().min(1, 'First name is required').max(50, 'First name too long'),
   lastName: z.string().min(1, 'Last name is required').max(50, 'Last name too long'),
+  username: z.string()
+    .min(3, 'Username must be at least 3 characters')
+    .max(30, 'Username must be less than 30 characters')
+    .regex(/^[a-zA-Z0-9_-]+$/, 'Username can only contain letters, numbers, underscores, and hyphens')
+    .optional()
+    .or(z.literal('')),
 })
 
 type ProfileUpdateFields = z.infer<typeof profileUpdateSchema>
@@ -21,15 +27,16 @@ type ProfileUpdateFields = z.infer<typeof profileUpdateSchema>
 interface ProfileHeaderProps {
   user: {
     id: string
-    emailAddresses: Array<{
+    emailAddresses: {
       id: string
       emailAddress: string
       verification?: { status: string }
-    }>
+    }[]
     primaryEmailAddressId?: string | null
     firstName?: string
     lastName?: string
     fullName?: string
+    username?: string
     imageUrl?: string
   }
 }
@@ -50,6 +57,7 @@ export default function ProfileHeader({ user }: ProfileHeaderProps) {
     defaultValues: {
       firstName: user.firstName || '',
       lastName: user.lastName || '',
+      username: user.username || '',
     },
   })
 
@@ -58,6 +66,7 @@ export default function ProfileHeader({ user }: ProfileHeaderProps) {
     reset({
       firstName: user.firstName || '',
       lastName: user.lastName || '',
+      username: user.username || '',
     })
     setShowEditModal(true)
   }
@@ -67,10 +76,18 @@ export default function ProfileHeader({ user }: ProfileHeaderProps) {
 
     setIsUpdating(true)
     try {
-      await clerkUser.update({
+      // Prepare update data
+      const updateData: any = {
         firstName: data.firstName,
         lastName: data.lastName,
-      })
+      }
+
+      // Only include username if it's provided and not empty
+      if (data.username && data.username.trim() !== '') {
+        updateData.username = data.username.trim()
+      }
+
+      await clerkUser.update(updateData)
       
       Alert.alert(
         'Success',
@@ -86,10 +103,32 @@ export default function ProfileHeader({ user }: ProfileHeaderProps) {
       )
     } catch (error: any) {
       console.error('Profile update error:', error)
-      Alert.alert(
-        'Error',
-        error.errors?.[0]?.longMessage || 'Failed to update profile. Please try again.'
-      )
+      
+      // Handle specific username errors
+      if (error.errors && error.errors.length > 0) {
+        const usernameError = error.errors.find((err: any) => 
+          err.code === 'form_username_invalid' || 
+          err.code === 'form_username_taken' ||
+          err.meta?.paramName === 'username'
+        )
+        
+        if (usernameError) {
+          Alert.alert(
+            'Username Error',
+            usernameError.longMessage || usernameError.message || 'This username is already taken or invalid. Please try a different one.'
+          )
+        } else {
+          Alert.alert(
+            'Error',
+            error.errors[0].longMessage || 'Failed to update profile. Please try again.'
+          )
+        }
+      } else {
+        Alert.alert(
+          'Error',
+          'Failed to update profile. Please try again.'
+        )
+      }
     } finally {
       setIsUpdating(false)
     }
@@ -188,6 +227,13 @@ export default function ProfileHeader({ user }: ProfileHeaderProps) {
     return user.emailAddresses[0]?.emailAddress || 'User'
   }
 
+  const getDisplayUsername = () => {
+    if (user.username) {
+      return `@${user.username}`
+    }
+    return null
+  }
+
   return (
     <>
       <View className="flex-row items-center justify-between">
@@ -226,6 +272,11 @@ export default function ProfileHeader({ user }: ProfileHeaderProps) {
             <Text className="text-lg font-semibold text-gray-900">
               {getDisplayName()}
             </Text>
+            {getDisplayUsername() && (
+              <Text className="text-sm text-gray-500 mb-1">
+                {getDisplayUsername()}
+              </Text>
+            )}
             <Text className="text-sm text-gray-600">
               {user.emailAddresses[0]?.emailAddress}
             </Text>
@@ -239,7 +290,7 @@ export default function ProfileHeader({ user }: ProfileHeaderProps) {
           className="bg-black rounded-lg px-4 py-2"
         >
           <Text className="text-white font-medium">
-            {isUpdating ? 'Updating...' : 'Update profile'}
+            {isUpdating ? 'Updating...' : 'Edit profile'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -291,9 +342,20 @@ export default function ProfileHeader({ user }: ProfileHeaderProps) {
               />
             </View>
 
-            <Text className="text-gray-500 text-sm mt-4">
-              Your profile information will be updated across all your connected accounts.
-            </Text>
+            <View className="mb-4">
+              <FormInput
+                control={control}
+                name="username"
+                label="Username"
+                placeholder="Enter your username (optional)"
+                autoCapitalize="none"
+                autoComplete="username"
+                autoCorrect={false}
+              />
+              <Text className="text-gray-500 text-xs mt-1">
+                Username can only contain letters, numbers, underscores, and hyphens. Leave empty to remove username.
+              </Text>
+            </View>
           </View>
         </View>
       </Modal>

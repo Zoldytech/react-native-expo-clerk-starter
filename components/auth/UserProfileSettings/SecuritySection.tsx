@@ -26,6 +26,7 @@ interface SecuritySectionProps {
     primaryPhoneNumberId?: string | null
     firstName?: string
     lastName?: string
+    username?: string
     imageUrl?: string
   }
 }
