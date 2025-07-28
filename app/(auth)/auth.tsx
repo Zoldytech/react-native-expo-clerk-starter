@@ -9,15 +9,12 @@ import { z } from 'zod'
 
 import FormInput from '@/components/FormInput'
 import SignInWith from '@/components/auth/SignInWith'
+import { WEB_URL_PRIVACY, WEB_URL_TERMS } from '@/constants/Config'
 
 // Email validation schema
 const emailSchema = z.object({
   email: z.string({ message: 'Email is required' }).email('Please enter a valid email address'),
 })
-
-// Constants for web URLs  
-const WEB_URL_TERMS = 'https://linkupsoc.com/terms-of-use'
-const WEB_URL_PRIVACY = 'https://linkupsoc.com/privacy-policy'
 
 // Sign-in schema (existing user)
 const signInSchema = z.object({
@@ -64,7 +61,7 @@ export default function ContinueWithAuth() {
         enableBarCollapsing: false,
       })
     } catch (error) {
-      console.error('Error opening Terms of Service:', error)
+      // Silently handle error
     }
   }
 
@@ -78,7 +75,7 @@ export default function ContinueWithAuth() {
         enableBarCollapsing: false,
       })
     } catch (error) {
-      console.error('Error opening Privacy Policy:', error)
+      // Silently handle error
     }
   }
 
@@ -111,13 +108,9 @@ export default function ContinueWithAuth() {
   // Clean password fields when transitioning to signin/signup
   useEffect(() => {
     if (authStep === 'signin') {
-      console.log('Transitioning to signin, current password value:', signInForm.getValues('password'))
       signInForm.setValue('password', '', { shouldValidate: false })
-      console.log('After clearing, password value:', signInForm.getValues('password'))
     } else if (authStep === 'signup') {
-      console.log('Transitioning to signup, current password value:', signUpForm.getValues('password'))
       signUpForm.setValue('password', '', { shouldValidate: false })
-      console.log('After clearing, password value:', signUpForm.getValues('password'))
     }
   }, [authStep, signInForm, signUpForm])
 
@@ -125,18 +118,11 @@ export default function ContinueWithAuth() {
     if (!signInLoaded) return false
 
     try {
-      // Create a temporary sign-in attempt just to check if user exists
-      // This should not affect our form state
-      const tempSignIn = await signIn.create({
+      await signIn.create({
         identifier: email,
       })
-      
-      // If we get here without error, user exists
-      // But we need to clear this attempt to not interfere with our forms
       return true
     } catch (error: any) {
-      console.log('User existence check:', error?.errors?.[0]?.code || 'unknown error')
-      
       if (error.errors && Array.isArray(error.errors)) {
         const userNotFound = error.errors.some((err: any) => 
           err.code === 'form_identifier_not_found' || 
@@ -168,28 +154,23 @@ export default function ContinueWithAuth() {
       const userExists = await checkUserExists(data.email)
       
       if (userExists) {
-        // User exists, prepare fresh sign-in form
         signInForm.reset({
           email: data.email,
           password: ''
         })
-        // Force update to ensure password field is empty
         signInForm.setValue('password', '')
         setAuthStep('signin')
       } else {
-        // User doesn't exist, prepare fresh sign-up form
         signUpForm.reset({
           email: data.email,
           password: '',
           firstName: '',
           lastName: ''
         })
-        // Force update to ensure password field is empty
         signUpForm.setValue('password', '')
         setAuthStep('signup')
       }
     } catch (error) {
-      console.error('Error in continue flow:', error)
       Alert.alert(
         'Error',
         'Something went wrong. Please try again.'
@@ -217,8 +198,6 @@ export default function ContinueWithAuth() {
         signInForm.setError('root', { message: 'Sign in could not be completed' })
       }
     } catch (error: any) {
-      console.error('Sign in error:', error)
-      
       if (error.errors && Array.isArray(error.errors)) {
         error.errors.forEach((err: any) => {
           if (err.meta?.paramName === 'password') {
@@ -249,7 +228,6 @@ export default function ContinueWithAuth() {
       })
 
       if (signUpAttempt.status === 'missing_requirements') {
-        // Need email verification
         await signUp.prepareEmailAddressVerification({ strategy: 'email_code' })
         setAuthStep('verify')
       } else if (signUpAttempt.status === 'complete') {
@@ -257,8 +235,6 @@ export default function ContinueWithAuth() {
         router.replace('/(tabs)/home' as any)
       }
     } catch (error: any) {
-      console.error('Sign up error:', error)
-      
       if (error.errors && Array.isArray(error.errors)) {
         error.errors.forEach((err: any) => {
           const field = err.meta?.paramName || 'root'
@@ -289,7 +265,6 @@ export default function ContinueWithAuth() {
         verificationForm.setError('code', { message: 'Verification failed. Please try again.' })
       }
     } catch (error: any) {
-      console.error('Verification error:', error)
       verificationForm.setError('code', { message: 'Invalid verification code. Please try again.' })
     } finally {
       setIsLoading(false)
@@ -300,7 +275,6 @@ export default function ContinueWithAuth() {
     if (authStep === 'signin' || authStep === 'signup') {
       setAuthStep('email')
       setUserEmail('')
-      // Reset all forms when going back
       signInForm.reset({ email: '', password: '' })
       signUpForm.reset({ email: '', password: '', firstName: '', lastName: '' })
       emailForm.reset({ email: '' })
@@ -437,7 +411,7 @@ export default function ContinueWithAuth() {
               </Text>
             </TouchableOpacity>
 
-            <View className="flex-row justify-center">
+            <View className="flex-row justify-end">
               <TouchableOpacity
                 onPress={() => router.push('/(auth)/forgot-password')}
               >
