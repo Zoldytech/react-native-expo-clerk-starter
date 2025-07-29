@@ -1,3 +1,4 @@
+import * as AuthSession from 'expo-auth-session'
 import * as WebBrowser from 'expo-web-browser'
 import React, { useState } from 'react'
 import { Alert, Modal, Text, TouchableOpacity, View } from 'react-native'
@@ -259,11 +260,12 @@ export default function ProfileSection({ user }: ProfileSectionProps) {
 
     try {
       const strategy = provider === 'google' ? 'oauth_google' : 'oauth_apple'
+      const redirectUri = AuthSession.makeRedirectUri()
       
       // Create external account for existing user (correct method for connecting accounts)
       const externalAccount = await clerkUser.createExternalAccount({
         strategy: strategy as any,
-        redirectUrl: 'exp://127.0.0.1:19000/--/oauth-callback',
+        redirectUrl: redirectUri,
       })
 
       // Check if we need to complete OAuth flow in browser
@@ -271,7 +273,7 @@ export default function ProfileSection({ user }: ProfileSectionProps) {
         // Open OAuth flow in browser
         const result = await WebBrowser.openAuthSessionAsync(
           externalAccount.verification.externalVerificationRedirectURL.toString(),
-          'exp://127.0.0.1:19000/--/oauth-callback'
+          redirectUri
         )
 
         if (result.type === 'success') {
@@ -635,4 +637,4 @@ export default function ProfileSection({ user }: ProfileSectionProps) {
        </Modal>
     </View>
   )
-} 
+}
