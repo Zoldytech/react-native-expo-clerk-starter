@@ -8,8 +8,12 @@ import { Alert, KeyboardAvoidingView, Platform, Text, TouchableOpacity, View } f
 import { z } from 'zod'
 
 import FormInput from '@/components/FormInput'
-import SignInWith from '@/components/auth/SignInWith'
 import { WEB_URL_PRIVACY, WEB_URL_TERMS } from '@/constants/Config'
+import AuthBackButton from './_components/AuthBackButton'
+import AuthButton from './_components/AuthButton'
+import AuthHeader from './_components/AuthHeader'
+import AuthLink from './_components/AuthLink'
+import SocialAuth from './_components/SocialAuth'
 
 // Email validation schema
 const emailSchema = z.object({
@@ -293,27 +297,12 @@ export default function ContinueWithAuth() {
       >
         <View className="flex-1 justify-center px-6">
           <View className="max-w-sm mx-auto w-full">
-            <Text className="text-3xl font-bold text-center mb-2 text-gray-900">
-              Continue to your account
-            </Text>
-            <Text className="text-center mb-8 text-gray-600">
-              Sign in or create an account to get started
-            </Text>
+            <AuthHeader
+              title="Continue to your account"
+              subtitle="Sign in or create an account to get started"
+            />
 
-            <View className="flex-row gap-3 mb-6">
-              <View className="flex-1">
-                <SignInWith strategy="oauth_google" variant="button" />
-              </View>
-              <View className="flex-1">
-                <SignInWith strategy="oauth_apple" variant="button" />
-              </View>
-            </View>
-
-            <View className="flex-row items-center mb-6">
-              <View className="flex-1 h-px bg-gray-300" />
-              <Text className="mx-4 text-gray-600 text-sm">or</Text>
-              <View className="flex-1 h-px bg-gray-300" />
-            </View>
+            <SocialAuth />
 
             <View className="mb-4">
               <FormInput
@@ -328,32 +317,23 @@ export default function ContinueWithAuth() {
               />
             </View>
 
-            <TouchableOpacity
+            <AuthButton
+              title={!signInLoaded 
+                ? 'Loading...' 
+                : isLoading 
+                  ? 'Checking...' 
+                  : 'Continue'}
               onPress={emailForm.handleSubmit(handleEmailContinue)}
               disabled={isLoading || !signInLoaded}
-              className={`rounded-lg py-4 items-center mb-6 ${
-                isLoading || !signInLoaded ? 'bg-gray-300' : 'bg-black'
-              }`}
-            >
-              <Text className={`font-semibold ${
-                isLoading || !signInLoaded ? 'text-gray-500' : 'text-white'
-              }`}>
-                {!signInLoaded 
-                  ? 'Loading...' 
-                  : isLoading 
-                    ? 'Checking...' 
-                    : 'Continue'
-                }
-              </Text>
-            </TouchableOpacity>
+              loading={isLoading}
+              loadingText={!signInLoaded ? 'Loading...' : 'Checking...'}
+            />
 
-            <View className="flex-row justify-end mb-4">
-              <TouchableOpacity
-                onPress={() => router.push('/(auth)/forgot-password')}
-              >
-                <Text className="text-sm font-semibold">Forgot password?</Text>
-              </TouchableOpacity>
-            </View>
+            <AuthLink
+              text="Forgot password?"
+              onPress={() => router.push('/(auth)/forgot-password')}
+              align="right"
+            />
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -369,19 +349,13 @@ export default function ContinueWithAuth() {
       >
         <View className="flex-1 justify-center px-6">
           <View className="max-w-sm mx-auto w-full">
-            <TouchableOpacity onPress={goBack} className="mb-4">
-              <Text className="text-gray-600">← Back</Text>
-            </TouchableOpacity>
+            <AuthBackButton onPress={goBack} />
             
-            <Text className="text-3xl font-bold text-center mb-2 text-gray-900">
-              Welcome back
-            </Text>
-            <Text className="text-center mb-2 text-gray-600">
-              Signing in as
-            </Text>
-            <Text className="text-center mb-8 text-black font-medium">
-              {userEmail}
-            </Text>
+            <AuthHeader
+              title="Welcome back"
+              emailLabel="Signing in as"
+              email={userEmail}
+            />
 
             <View className="mb-4">
               <FormInput
@@ -397,27 +371,19 @@ export default function ContinueWithAuth() {
               />
             </View>
 
-            <TouchableOpacity
+            <AuthButton
+              title={isLoading ? 'Signing in...' : 'Sign In'}
               onPress={signInForm.handleSubmit(handleSignIn)}
               disabled={isLoading}
-              className={`rounded-lg py-4 items-center mb-4 ${
-                isLoading ? 'bg-gray-300' : 'bg-black'
-              }`}
-            >
-              <Text className={`font-semibold ${
-                isLoading ? 'text-gray-500' : 'text-white'
-              }`}>
-                {isLoading ? 'Signing in...' : 'Sign In'}
-              </Text>
-            </TouchableOpacity>
+              loading={isLoading}
+              loadingText="Signing in..."
+            />
 
-            <View className="flex-row justify-end">
-              <TouchableOpacity
-                onPress={() => router.push('/(auth)/forgot-password')}
-              >
-                <Text className="text-sm font-semibold">Forgot password?</Text>
-              </TouchableOpacity>
-            </View>
+            <AuthLink
+              text="Forgot password?"
+              onPress={() => router.push('/(auth)/forgot-password')}
+              align="right"
+            />
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -433,19 +399,13 @@ export default function ContinueWithAuth() {
       >
         <View className="flex-1 justify-center px-6">
           <View className="max-w-sm mx-auto w-full">
-            <TouchableOpacity onPress={goBack} className="mb-4">
-              <Text className="text-gray-600">← Back</Text>
-            </TouchableOpacity>
+            <AuthBackButton onPress={goBack} />
             
-            <Text className="text-3xl font-bold text-center mb-2 text-gray-900">
-              Create your account
-            </Text>
-            <Text className="text-center mb-2 text-gray-600">
-              Creating account for
-            </Text>
-            <Text className="text-center mb-8 text-black font-medium">
-              {userEmail}
-            </Text>
+            <AuthHeader
+              title="Create your account"
+              emailLabel="Creating account for"
+              email={userEmail}
+            />
 
             <View className="flex-row gap-3 mb-4">
               <View className="flex-1">
@@ -501,19 +461,13 @@ export default function ContinueWithAuth() {
               </Text>
             </View>
 
-            <TouchableOpacity
+            <AuthButton
+              title={isLoading ? 'Creating account...' : 'Create Account'}
               onPress={signUpForm.handleSubmit(handleSignUp)}
               disabled={isLoading}
-              className={`rounded-lg py-4 items-center mb-6 ${
-                isLoading ? 'bg-gray-300' : 'bg-black'
-              }`}
-            >
-              <Text className={`font-semibold ${
-                isLoading ? 'text-gray-500' : 'text-white'
-              }`}>
-                {isLoading ? 'Creating account...' : 'Create Account'}
-              </Text>
-            </TouchableOpacity>
+              loading={isLoading}
+              loadingText="Creating account..."
+            />
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -529,16 +483,12 @@ export default function ContinueWithAuth() {
       >
         <View className="flex-1 justify-center px-6">
           <View className="max-w-sm mx-auto w-full">
-            <TouchableOpacity onPress={goBack} className="mb-4">
-              <Text className="text-gray-600">← Back</Text>
-            </TouchableOpacity>
+            <AuthBackButton onPress={goBack} />
             
-            <Text className="text-3xl font-bold text-center mb-2 text-gray-900">
-              Verify your email
-            </Text>
-            <Text className="text-center mb-8 text-gray-600">
-              We sent a verification code to {userEmail}
-            </Text>
+            <AuthHeader
+              title="Verify your email"
+              subtitle={`We sent a verification code to ${userEmail}`}
+            />
 
             <View className="mb-4">
               <FormInput
@@ -552,19 +502,13 @@ export default function ContinueWithAuth() {
               />
             </View>
 
-            <TouchableOpacity
+            <AuthButton
+              title={isLoading ? 'Verifying...' : 'Verify Email'}
               onPress={verificationForm.handleSubmit(handleVerification)}
               disabled={isLoading}
-              className={`rounded-lg py-4 items-center mb-6 ${
-                isLoading ? 'bg-gray-300' : 'bg-black'
-              }`}
-            >
-              <Text className={`font-semibold ${
-                isLoading ? 'text-gray-500' : 'text-white'
-              }`}>
-                {isLoading ? 'Verifying...' : 'Verify Email'}
-              </Text>
-            </TouchableOpacity>
+              loading={isLoading}
+              loadingText="Verifying..."
+            />
 
             <View className="flex-row justify-center">
               <Text className="text-gray-600 text-sm">Didn&apos;t receive a code? </Text>
