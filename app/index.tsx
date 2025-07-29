@@ -27,7 +27,7 @@ export default function WelcomeScreen() {
             </Text>
             
             <TouchableOpacity 
-              onPress={() => router.push('/(auth)/auth')}
+              onPress={() => router.push('/(auth)/continue' as any)}
               className="bg-black rounded-lg py-4 items-center mb-4"
             >
               <Text className="text-white font-semibold">Welcome</Text>
