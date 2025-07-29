@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "linkupsoc",
-    "slug": "linkupsoc",
+    "name": "react-native-expo-clerk-starter",
+    "slug": "react-native-expo-clerk-starter",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "linkupsoc",
+    "scheme": "react-native-expo-clerk-starter",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {

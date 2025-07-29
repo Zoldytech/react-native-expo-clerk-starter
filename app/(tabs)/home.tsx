@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Text, View, TouchableOpacity, Modal } from 'react-native'
+import { Modal, Text, TouchableOpacity, View } from 'react-native'
 
 import { useUser } from '@clerk/clerk-expo'
 import { FontAwesome } from '@expo/vector-icons'
@@ -15,7 +15,7 @@ export default function HomeScreen() {
     <View className="flex-1 justify-center items-center bg-gray-50 px-6">
       <View className="bg-white rounded-lg shadow-md p-6 w-full max-w-sm">
         <Text className="text-2xl font-bold text-center mb-4 text-gray-800">
-          Welcome to LinkupSoc! 🎉
+          Welcome to react-native-expo-clerk-starter! 🎉
         </Text>
         
         {user && (

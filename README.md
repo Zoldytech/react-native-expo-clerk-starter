@@ -1,4 +1,4 @@
-# LinkupSoc Mobile App
+# react-native-expo-clerk-starter Mobile App
 
 A modern social mobile app built with **Expo Router** and **Clerk Authentication**.
 

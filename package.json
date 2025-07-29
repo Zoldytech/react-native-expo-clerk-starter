@@ -1,5 +1,5 @@
 {
-  "name": "linkupsoc",
+  "name": "react-native-expo-clerk-starter",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {

@@ -20,7 +20,7 @@ export default function WelcomeScreen() {
               Welcome to
             </Text>
             <Text className="text-4xl font-bold text-center mb-8 text-black">
-              LinkupSoc
+              react-native-expo-clerk-starter
             </Text>
             <Text className="text-center mb-12 text-gray-600 leading-relaxed">
               Connect, share, and discover amazing content with your community.
