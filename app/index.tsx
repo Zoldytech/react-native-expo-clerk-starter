@@ -22,9 +22,6 @@ export default function WelcomeScreen() {
             <Text className="text-4xl font-bold text-center mb-8 text-black">
               react-native-expo-clerk-starter
             </Text>
-            <Text className="text-center mb-12 text-gray-600 leading-relaxed">
-              Connect, share, and discover amazing content with your community.
-            </Text>
             
             <TouchableOpacity 
               onPress={() => router.push('/(auth)/continue' as any)}
