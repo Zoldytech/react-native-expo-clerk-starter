@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { ActivityIndicator, Alert, Image, Modal, Text, TouchableOpacity, View } from 'react-native'
 
-import { useUser } from '@clerk/clerk-expo'
+import { isClerkAPIResponseError, useUser } from '@clerk/clerk-expo'
 import { FontAwesome } from '@expo/vector-icons'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as ImagePicker from 'expo-image-picker'
@@ -25,23 +25,11 @@ const profileUpdateSchema = z.object({
 type ProfileUpdateFields = z.infer<typeof profileUpdateSchema>
 
 interface ProfileHeaderProps {
-  user: {
-    id: string
-    emailAddresses: {
-      id: string
-      emailAddress: string
-      verification?: { status: string }
-    }[]
-    primaryEmailAddressId?: string | null
-    firstName?: string
-    lastName?: string
-    fullName?: string
-    username?: string
-    imageUrl?: string
-  }
+  user: NonNullable<ReturnType<typeof useUser>['user']>
+  onProfileUpdated?: () => void
 }
 
-export default function ProfileHeader({ user }: ProfileHeaderProps) {
+export default function ProfileHeader({ user, onProfileUpdated }: ProfileHeaderProps) {
   const { user: clerkUser } = useUser()
   const [isUpdating, setIsUpdating] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -51,7 +39,6 @@ export default function ProfileHeader({ user }: ProfileHeaderProps) {
     control,
     handleSubmit,
     reset,
-    formState: { errors },
   } = useForm<ProfileUpdateFields>({
     resolver: zodResolver(profileUpdateSchema),
     defaultValues: {
@@ -178,7 +165,7 @@ export default function ProfileHeader({ user }: ProfileHeaderProps) {
           })
 
       if (!result.canceled && result.assets[0]) {
-        await uploadAvatar(result.assets[0].uri)
+        await handleUploadImage(result.assets[0].uri)
       }
     } catch (error) {
       console.error('Image picker error:', error)
@@ -186,29 +173,49 @@ export default function ProfileHeader({ user }: ProfileHeaderProps) {
     }
   }
 
-  const uploadAvatar = async (imageUri: string) => {
+  const handleUploadImage = async (imageUri: string) => {
     if (!clerkUser) return
 
     setIsUploadingAvatar(true)
     try {
-      // For React Native with Clerk, we need to pass the image as a proper file object
-      // First, let's read the file and create a proper file-like object
+      // Dynamically determine MIME type and file extension based on URI
+      const getImageTypeFromUri = (uri: string) => {
+        const extension = uri.split('.').pop()?.toLowerCase()
+        switch (extension) {
+          case 'png':
+            return { type: 'image/png', extension: '.png' }
+          case 'gif':
+            return { type: 'image/gif', extension: '.gif' }
+          case 'webp':
+            return { type: 'image/webp', extension: '.webp' }
+          case 'jpg':
+          case 'jpeg':
+          default:
+            return { type: 'image/jpeg', extension: '.jpg' }
+        }
+      }
+
+      const imageInfo = getImageTypeFromUri(imageUri)
+      const timestamp = Date.now()
+      
       const fileInfo = {
         uri: imageUri,
-        type: 'image/jpeg',
-        name: 'avatar.jpg',
+        type: imageInfo.type,
+        name: `avatar_${timestamp}${imageInfo.extension}`,
       }
-      
-      // Use the file object directly with Clerk
-      await clerkUser.setProfileImage({ file: fileInfo as any })
+
+      // React Native file objects differ from Web File API - use type assertion for Clerk compatibility
+      await clerkUser.setProfileImage({ file: fileInfo as unknown as File })
       
       Alert.alert('Success', 'Avatar updated successfully!')
-    } catch (error: any) {
-      console.error('Avatar upload error:', error)
-      Alert.alert(
-        'Error',
-        error.errors?.[0]?.longMessage || 'Failed to update avatar. Please try again.'
-      )
+      onProfileUpdated?.()
+    } catch (error: unknown) {
+      if (isClerkAPIResponseError(error)) {
+        const message = error.errors?.[0]?.longMessage || 'Failed to update avatar'
+        Alert.alert('Error', message)
+      } else {
+        Alert.alert('Error', 'Failed to update avatar. Please try again.')
+      }
     } finally {
       setIsUploadingAvatar(false)
     }

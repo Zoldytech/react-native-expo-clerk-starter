@@ -1,208 +1,124 @@
 import React, { useState } from 'react'
-import { View, Text, TouchableOpacity, Alert, Modal } from 'react-native'
+import { Alert, Text, TouchableOpacity, View } from 'react-native'
 
+import { isClerkAPIResponseError, useUser } from '@clerk/clerk-expo'
 import { FontAwesome } from '@expo/vector-icons'
-import { useUser } from '@clerk/clerk-expo'
-import { useForm } from 'react-hook-form'
-import { z } from 'zod'
-import { zodResolver } from '@hookform/resolvers/zod'
-
-import FormInput from '@/components/FormInput'
-
-// Email verification schema
-const emailVerificationSchema = z.object({
-  code: z.string({ message: 'Verification code is required' }).min(6, 'Code must be 6 digits').max(6, 'Code must be 6 digits'),
-})
-
-type EmailVerificationFields = z.infer<typeof emailVerificationSchema>
 
 interface EmailManagementProps {
-  user: {
-    emailAddresses: Array<{
-      id: string
-      emailAddress: string
-      verification?: { status: string }
-    }>
-    primaryEmailAddressId?: string | null
-    phoneNumbers?: Array<{
-      id: string
-      phoneNumber: string
-      verification?: { status: string }
-    }>
-  }
+  emailAddresses: NonNullable<ReturnType<typeof useUser>['user']>['emailAddresses']
+  phoneNumbers: NonNullable<ReturnType<typeof useUser>['user']>['phoneNumbers']
+  primaryEmailAddressId?: string | null
+  onEmailDeleted: () => void
 }
 
-export default function EmailManagement({ user }: EmailManagementProps) {
-  const { user: clerkUser } = useUser()
-  const [showVerificationModal, setShowVerificationModal] = useState(false)
-  const [isVerifying, setIsVerifying] = useState(false)
-  const [verifyingEmail, setVerifyingEmail] = useState<any>(null)
-  const [verifyingEmailAddress, setVerifyingEmailAddress] = useState('')
+export default function EmailManagement({
+  emailAddresses,
+  phoneNumbers,
+  primaryEmailAddressId,
+  onEmailDeleted,
+}: EmailManagementProps) {
+  const [dropdownVisible, setDropdownVisible] = useState<string | null>(null)
 
-  const {
-    control,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<EmailVerificationFields>({
-    resolver: zodResolver(emailVerificationSchema),
-    defaultValues: { code: '' },
-  })
-  const handleVerifyEmail = async (emailAddress: any) => {
-    try {
-      await emailAddress.prepareVerification({ strategy: 'email_code' })
-      setVerifyingEmail(emailAddress)
-      setVerifyingEmailAddress(emailAddress.emailAddress)
-      reset()
-      setShowVerificationModal(true)
-    } catch (error: any) {
-      console.error('Prepare verification error:', error)
-      Alert.alert(
-        'Error',
-        'Failed to send verification code. Please try again.'
-      )
-    }
-  }
-
-  const handleEmailVerification = async (data: EmailVerificationFields) => {
-    if (!verifyingEmail) return
-
-    setIsVerifying(true)
-    try {
-      await verifyingEmail.attemptVerification({ code: data.code })
-      
-      Alert.alert(
-        'Email Verified',
-        'Your email address has been successfully verified!',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              setShowVerificationModal(false)
-              setVerifyingEmail(null)
-              setVerifyingEmailAddress('')
-              reset()
-            }
-          }
-        ]
-      )
-    } catch (error: any) {
-      console.error('Email verification error:', error)
-      Alert.alert(
-        'Verification Failed',
-        error.errors?.[0]?.longMessage || 'Invalid verification code. Please try again.'
-      )
-    } finally {
-      setIsVerifying(false)
-    }
-  }
-
-  const handleResendVerification = async () => {
-    if (!verifyingEmail) return
-
-    try {
-      await verifyingEmail.prepareVerification({ strategy: 'email_code' })
-      Alert.alert('Code Sent', 'A new verification code has been sent to your email.')
-    } catch (error: any) {
-      console.error('Resend verification error:', error)
-      Alert.alert(
-        'Error',
-        'Failed to resend verification code. Please try again.'
-      )
-    }
-  }
-
-  const handleDeleteEmail = async (emailToDelete: any) => {
-    if (!clerkUser || !emailToDelete) return
-
-    // Check if user has at least one verified email or phone after deletion
-    const otherVerifiedEmails = user.emailAddresses.filter(
-      email => email.id !== emailToDelete.id && email.verification?.status === 'verified'
-    )
-    const verifiedPhones = user.phoneNumbers?.filter(
-      (phone: { id: string; phoneNumber: string; verification?: { status: string } }) => 
-        phone.verification?.status === 'verified'
-    ) || []
-    
-    const hasOtherVerifiedContact = otherVerifiedEmails.length > 0 || verifiedPhones.length > 0
-
-    if (!hasOtherVerifiedContact) {
-      Alert.alert(
-        'Cannot Delete Email',
-        'You must have at least one verified email address or phone number.',
-        [{ text: 'OK' }]
-      )
-      return
-    }
-
-    Alert.alert(
-      'Delete Email Address',
-      `Are you sure you want to delete ${emailToDelete.emailAddress}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await emailToDelete.destroy()
-              Alert.alert('Success', 'Email address deleted successfully.')
-            } catch (error: any) {
-              console.error('Delete email error:', error)
-              Alert.alert(
-                'Error',
-                error.errors?.[0]?.longMessage || 'Failed to delete email address.'
-              )
-            }
-          }
-        }
-      ]
-    )
-  }
-
-  if (!user.emailAddresses || user.emailAddresses.length === 0) {
+  if (!emailAddresses || emailAddresses.length === 0) {
     return (
       <Text className="text-gray-500 italic">No email addresses</Text>
     )
   }
 
-  const getEmailFromClerk = (emailAddress: string) => {
-    return clerkUser?.emailAddresses.find(e => e.emailAddress === emailAddress)
+  const toggleDropdown = (emailId: string) => {
+    setDropdownVisible(dropdownVisible === emailId ? null : emailId)
+  }
+
+  const closeDropdown = () => {
+    setDropdownVisible(null)
+  }
+
+  const handleMakePrimary = async (emailAddress: any) => {
+    closeDropdown()
+    try {
+      // Note: Clerk's API for making email primary may vary
+      Alert.alert('Info', 'Primary email functionality needs to be implemented based on your Clerk setup')
+    } catch (error: unknown) {
+      if (isClerkAPIResponseError(error)) {
+        const message = error.errors?.[0]?.longMessage || 'Failed to make email primary'
+        Alert.alert('Error', message)
+      } else {
+        Alert.alert('Error', 'Failed to make email primary')
+      }
+    }
+  }
+
+  const handleDelete = async (emailAddress: any) => {
+    closeDropdown()
+
+    try {
+      // Check if we have other verified methods before allowing deletion
+      const hasOtherVerifiedEmails = emailAddresses.some(
+        (email) => email.id !== emailAddress.id && email.verification?.status === 'verified'
+      )
+      const hasVerifiedPhone = phoneNumbers && phoneNumbers.some(
+        (phone) => phone.verification?.status === 'verified'
+      )
+
+      if (!hasOtherVerifiedEmails && !hasVerifiedPhone) {
+        Alert.alert(
+          'Cannot Delete',
+          'You must have at least one verified email or phone number to maintain account access.'
+        )
+        return
+      }
+
+      Alert.alert(
+        'Delete Email Address',
+        `Are you sure you want to delete ${emailAddress.emailAddress}?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              const emailWithDestroy = emailAddress as typeof emailAddress & { 
+                destroy?: () => Promise<void> 
+              }
+              if (emailWithDestroy.destroy) {
+                await emailWithDestroy.destroy()
+                onEmailDeleted()
+                Alert.alert('Success', 'Email address deleted successfully!')
+              } else {
+                Alert.alert('Error', 'Unable to delete email address')
+              }
+            }
+          }
+        ]
+      )
+    } catch (error: unknown) {
+      if (isClerkAPIResponseError(error)) {
+        const message = error.errors?.[0]?.longMessage || 'Failed to delete email address'
+        Alert.alert('Error', message)
+      } else {
+        Alert.alert('Error', 'Failed to delete email address')
+      }
+    }
   }
 
   return (
-    <>
-      <View className="space-y-3">
-        {user.emailAddresses.map((email) => {
-          const clerkEmail = getEmailFromClerk(email.emailAddress)
-          const isVerified = email.verification?.status === 'verified'
-          // Check if this email is the primary one using Clerk's method
-          const isPrimary = clerkUser?.isPrimaryIdentification ? 
-            clerkUser.isPrimaryIdentification(clerkEmail!) : 
-            clerkUser?.primaryEmailAddressId === email.id
-          
-          return (
-            <View 
-              key={email.id} 
-              className="flex-row items-center justify-between py-2"
-            >
+    <View className="space-y-3">
+      {emailAddresses.map((emailAddress) => {
+        const isPrimary = emailAddress.id === primaryEmailAddressId
+        const isVerified = emailAddress.verification?.status === 'verified'
+        const showDropdown = dropdownVisible === emailAddress.id
+        
+        return (
+          <View key={emailAddress.id} className="relative">
+            <View className="flex-row items-center justify-between py-2">
               <View className="flex-1">
-                <Text className="text-gray-900 font-medium">
-                  {email.emailAddress}
-                </Text>
+                <Text className="text-gray-900 font-medium">{emailAddress.emailAddress}</Text>
                 <View className="flex-row items-center mt-1">
-                  {isVerified ? (
+                  {isVerified && (
                     <View className="flex-row items-center mr-3">
                       <FontAwesome name="check-circle" size={14} color="#374151" />
                       <Text className="text-gray-700 text-sm ml-1">Verified</Text>
                     </View>
-                  ) : (
-                    <TouchableOpacity 
-                      onPress={() => clerkEmail && handleVerifyEmail(clerkEmail)}
-                      className="mr-3"
-                    >
-                      <Text className="text-blue-500 text-sm font-medium">Verify</Text>
-                    </TouchableOpacity>
                   )}
                   {isPrimary && (
                     <View className="bg-gray-100 px-2 py-1 rounded">
@@ -212,75 +128,50 @@ export default function EmailManagement({ user }: EmailManagementProps) {
                 </View>
               </View>
               
-                             {user.emailAddresses.length > 1 && (
-                 <TouchableOpacity 
-                   className="p-2"
-                   onPress={() => clerkEmail && handleDeleteEmail(clerkEmail)}
-                 >
-                   <FontAwesome name="trash" size={16} color="#374151" />
-                 </TouchableOpacity>
-               )}
-            </View>
-          )
-        })}
-      </View>
-
-      {/* Email Verification Modal */}
-      <Modal
-        visible={showVerificationModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <View className="flex-1 bg-gray-50">
-          <View className="flex-row justify-between items-center p-4 border-b border-gray-200 bg-white">
-            <TouchableOpacity onPress={() => setShowVerificationModal(false)}>
-              <Text className="text-blue-500 font-medium">Cancel</Text>
-            </TouchableOpacity>
-            <Text className="text-lg font-semibold">Verify Email</Text>
-            <TouchableOpacity 
-              onPress={handleSubmit(handleEmailVerification)}
-              disabled={isVerifying}
-            >
-              <Text className={`font-medium ${
-                isVerifying ? 'text-gray-400' : 'text-blue-500'
-              }`}>
-                {isVerifying ? 'Verifying...' : 'Verify'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View className="p-6">
-            <Text className="text-gray-900 font-medium mb-2">
-              Check your email
-            </Text>
-            <Text className="text-gray-600 mb-6">
-              We&apos;ve sent a verification code to {verifyingEmailAddress}. Enter the 6-digit code below.
-            </Text>
-
-            <View className="mb-6">
-              <FormInput
-                control={control}
-                name="code"
-                label="Verification Code"
-                placeholder="Enter 6-digit code"
-                keyboardType="number-pad"
-                maxLength={6}
-                autoCapitalize="none"
-                autoComplete="one-time-code"
-              />
+              <TouchableOpacity
+                className="p-2"
+                onPress={() => toggleDropdown(emailAddress.id)}
+              >
+                <FontAwesome name="ellipsis-v" size={16} color="#374151" />
+              </TouchableOpacity>
             </View>
 
-            <TouchableOpacity 
-              onPress={handleResendVerification}
-              className="items-center py-3"
-            >
-              <Text className="text-blue-500 font-medium">
-                Didn&apos;t receive the code? Resend
-              </Text>
-            </TouchableOpacity>
+            {/* Dropdown Menu */}
+            {showDropdown && (
+              <View className="absolute right-0 top-16 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[140px]">
+                {!isPrimary && isVerified && (
+                  <TouchableOpacity
+                    className="flex-row items-center px-4 py-3 border-b border-gray-100"
+                    onPress={() => handleMakePrimary(emailAddress)}
+                  >
+                    <FontAwesome name="star" size={14} color="#374151" />
+                    <Text className="text-gray-900 font-medium ml-3 text-sm">Make Primary</Text>
+                  </TouchableOpacity>
+                )}
+                
+                {emailAddresses.length > 1 && (
+                  <TouchableOpacity
+                    className="flex-row items-center px-4 py-3"
+                    onPress={() => handleDelete(emailAddress)}
+                  >
+                    <FontAwesome name="trash" size={14} color="#ef4444" />
+                    <Text className="text-red-500 font-medium ml-3 text-sm">Delete</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
           </View>
-        </View>
-      </Modal>
-    </>
+        )
+      })}
+      
+      {/* Invisible overlay to close dropdown when tapping outside */}
+      {dropdownVisible && (
+        <TouchableOpacity
+          className="absolute inset-0 -z-10"
+          onPress={closeDropdown}
+          activeOpacity={1}
+        />
+      )}
+    </View>
   )
 } 

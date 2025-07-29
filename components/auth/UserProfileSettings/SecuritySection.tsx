@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { Alert, Modal, Platform, Text, TouchableOpacity, View } from 'react-native'
 
 import { useUser } from '@clerk/clerk-expo'
@@ -10,25 +10,7 @@ import { z } from 'zod'
 import FormInput from '@/components/FormInput'
 
 interface SecuritySectionProps {
-  user: {
-    id: string
-    emailAddresses: {
-      id: string
-      emailAddress: string
-      verification?: { status: string }
-    }[]
-    primaryEmailAddressId?: string | null
-    phoneNumbers?: {
-      id: string
-      phoneNumber: string
-      verification?: { status: string }
-    }[]
-    primaryPhoneNumberId?: string | null
-    firstName?: string
-    lastName?: string
-    username?: string
-    imageUrl?: string
-  }
+  user: NonNullable<ReturnType<typeof useUser>['user']>
 }
 
 // Password update validation schema
@@ -59,7 +41,6 @@ export default function SecuritySection({ user }: SecuritySectionProps) {
     control,
     handleSubmit,
     reset,
-    formState: { errors },
   } = useForm<PasswordUpdateFields>({
     resolver: zodResolver(passwordUpdateSchema),
     defaultValues: {
@@ -69,12 +50,7 @@ export default function SecuritySection({ user }: SecuritySectionProps) {
     },
   })
 
-  // Check passkey support on component mount
-  useEffect(() => {
-    checkPasskeySupport()
-  }, [])
-
-  const checkPasskeySupport = async () => {
+  const checkPasskeySupport = useCallback(async () => {
     setIsCheckingSupport(true)
     
     try {
@@ -142,7 +118,11 @@ export default function SecuritySection({ user }: SecuritySectionProps) {
     } finally {
       setIsCheckingSupport(false)
     }
-  }
+  }, [clerkUser])
+
+  useEffect(() => {
+    checkPasskeySupport()
+  }, [checkPasskeySupport])
 
   const handleUpdatePassword = () => {
     reset()
@@ -373,7 +353,7 @@ export default function SecuritySection({ user }: SecuritySectionProps) {
     } else if (Platform.OS === 'android') {
       return 'Passkeys require Android with Google Play Services and are still in development for Clerk Expo apps.'
     } else {
-      return 'Passkeys are not supported on this platform and are still in development for Clerk Expo apps.'
+      return 'Passkeys are not supported on this platform yet.'
     }
   }
 
