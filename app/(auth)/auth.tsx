@@ -4,13 +4,14 @@ import { useRouter } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
 import React, { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Alert, KeyboardAvoidingView, Platform, Text, TouchableOpacity, View } from 'react-native'
+import { Alert, Text, TouchableOpacity, View } from 'react-native'
 import { z } from 'zod'
 
 import FormInput from '@/components/FormInput'
 import { WEB_URL_PRIVACY, WEB_URL_TERMS } from '@/constants/Config'
 import AuthBackButton from './_components/AuthBackButton'
 import AuthButton from './_components/AuthButton'
+import AuthContainer from './_components/AuthContainer'
 import AuthHeader from './_components/AuthHeader'
 import AuthLink from './_components/AuthLink'
 import SocialAuth from './_components/SocialAuth'
@@ -291,237 +292,217 @@ export default function ContinueWithAuth() {
   // Email step
   if (authStep === 'email') {
     return (
-      <KeyboardAvoidingView 
-        className="flex-1 bg-gray-50"
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <View className="flex-1 justify-center px-6">
-          <View className="max-w-sm mx-auto w-full">
-            <AuthHeader
-              title="Continue to your account"
-              subtitle="Sign in or create an account to get started"
-            />
+      <AuthContainer>
+        <View className="w-full">
+          <AuthHeader
+            title="Continue to your account"
+            subtitle="Sign in or create an account to get started"
+          />
 
-            <SocialAuth />
+          <SocialAuth />
 
-            <View className="mb-4">
-              <FormInput
-                control={emailForm.control}
-                name="email"
-                placeholder="Email"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-                textContentType="emailAddress"
-                autoFocus
-              />
-            </View>
-
-            <AuthButton
-              title={!signInLoaded 
-                ? 'Loading...' 
-                : isLoading 
-                  ? 'Checking...' 
-                  : 'Continue'}
-              onPress={emailForm.handleSubmit(handleEmailContinue)}
-              disabled={isLoading || !signInLoaded}
-              loading={isLoading}
-              loadingText={!signInLoaded ? 'Loading...' : 'Checking...'}
-            />
-
-            <AuthLink
-              text="Forgot password?"
-              onPress={() => router.push('/(auth)/forgot-password')}
-              align="right"
+          <View className="mb-4">
+            <FormInput
+              control={emailForm.control}
+              name="email"
+              placeholder="Email"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              textContentType="emailAddress"
+              autoFocus
             />
           </View>
+
+          <AuthButton
+            title={!signInLoaded 
+              ? 'Loading...' 
+              : isLoading 
+                ? 'Checking...' 
+                : 'Continue'}
+            onPress={emailForm.handleSubmit(handleEmailContinue)}
+            disabled={isLoading || !signInLoaded}
+            loading={isLoading}
+            loadingText={!signInLoaded ? 'Loading...' : 'Checking...'}
+          />
+
+          <AuthLink
+            text="Forgot password?"
+            onPress={() => router.push('/(auth)/forgot-password')}
+            align="right"
+          />
         </View>
-      </KeyboardAvoidingView>
+      </AuthContainer>
     )
   }
 
   // Sign-in step (existing user)
   if (authStep === 'signin') {
     return (
-      <KeyboardAvoidingView 
-        className="flex-1 bg-gray-50"
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <View className="flex-1 justify-center px-6">
-          <View className="max-w-sm mx-auto w-full">
-            <AuthBackButton onPress={goBack} />
-            
-            <AuthHeader
-              title="Welcome back"
-              emailLabel="Signing in as"
-              email={userEmail}
-            />
+      <AuthContainer>
+        <View className="w-full">
+          <AuthBackButton onPress={goBack} />
+          
+          <AuthHeader
+            title="Welcome back"
+            emailLabel="Signing in as"
+            email={userEmail}
+          />
 
-            <View className="mb-4">
-              <FormInput
-                control={signInForm.control}
-                name="password"
-                placeholder="Enter your password"
-                secureTextEntry
-                autoComplete="password"
-                autoFocus
-                editable={true}
-                selectTextOnFocus={true}
-                key={`signin-password-${authStep}`}
-              />
-            </View>
-
-            <AuthButton
-              title={isLoading ? 'Signing in...' : 'Sign In'}
-              onPress={signInForm.handleSubmit(handleSignIn)}
-              disabled={isLoading}
-              loading={isLoading}
-              loadingText="Signing in..."
-            />
-
-            <AuthLink
-              text="Forgot password?"
-              onPress={() => router.push('/(auth)/forgot-password')}
-              align="right"
+          <View className="mb-4">
+            <FormInput
+              control={signInForm.control}
+              name="password"
+              placeholder="Enter your password"
+              secureTextEntry
+              autoComplete="password"
+              autoFocus
+              editable={true}
+              selectTextOnFocus={true}
+              key={`signin-password-${authStep}`}
             />
           </View>
+
+          <AuthButton
+            title={isLoading ? 'Signing in...' : 'Sign In'}
+            onPress={signInForm.handleSubmit(handleSignIn)}
+            disabled={isLoading}
+            loading={isLoading}
+            loadingText="Signing in..."
+          />
+
+          <AuthLink
+            text="Forgot password?"
+            onPress={() => router.push('/(auth)/forgot-password')}
+            align="right"
+          />
         </View>
-      </KeyboardAvoidingView>
+      </AuthContainer>
     )
   }
 
   // Sign-up step (new user)
   if (authStep === 'signup') {
     return (
-      <KeyboardAvoidingView 
-        className="flex-1 bg-gray-50"
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <View className="flex-1 justify-center px-6">
-          <View className="max-w-sm mx-auto w-full">
-            <AuthBackButton onPress={goBack} />
-            
-            <AuthHeader
-              title="Create your account"
-              emailLabel="Creating account for"
-              email={userEmail}
-            />
+      <AuthContainer>
+        <View className="w-full">
+          <AuthBackButton onPress={goBack} />
+          
+          <AuthHeader
+            title="Create your account"
+            emailLabel="Creating account for"
+            email={userEmail}
+          />
 
-            <View className="flex-row gap-3 mb-4">
-              <View className="flex-1">
-                <FormInput
-                  control={signUpForm.control}
-                  name="firstName"
-                  placeholder="First name"
-                  autoComplete="given-name"
-                  autoCapitalize="words"
-                  autoFocus
-                />
-              </View>
-              <View className="flex-1">
-                <FormInput
-                  control={signUpForm.control}
-                  name="lastName"
-                  placeholder="Last name"
-                  autoComplete="family-name"
-                  autoCapitalize="words"
-                />
-              </View>
-            </View>
-
-            <View className="mb-4">
+          <View className="flex-row gap-3 mb-4">
+            <View className="flex-1">
               <FormInput
                 control={signUpForm.control}
-                name="password"
-                placeholder="Create a password"
-                secureTextEntry
-                autoComplete="new-password"
-                editable={true}
-                selectTextOnFocus={true}
-                key={`signup-password-${authStep}`}
+                name="firstName"
+                placeholder="First name"
+                autoComplete="given-name"
+                autoCapitalize="words"
+                autoFocus
               />
             </View>
-
-            <View className="mb-4">
-              <Text className="text-xs text-gray-600 text-center leading-relaxed">
-                By continuing, you agree to our{' '}
-                <Text 
-                  className="underline" 
-                  onPress={openTerms}
-                >
-                  Terms of Service
-                </Text>
-                {' '}and{' '}
-                <Text 
-                  className="underline" 
-                  onPress={openPrivacy}
-                >
-                  Privacy Policy
-                </Text>
-              </Text>
+            <View className="flex-1">
+              <FormInput
+                control={signUpForm.control}
+                name="lastName"
+                placeholder="Last name"
+                autoComplete="family-name"
+                autoCapitalize="words"
+              />
             </View>
+          </View>
 
-            <AuthButton
-              title={isLoading ? 'Creating account...' : 'Create Account'}
-              onPress={signUpForm.handleSubmit(handleSignUp)}
-              disabled={isLoading}
-              loading={isLoading}
-              loadingText="Creating account..."
+          <View className="mb-4">
+            <FormInput
+              control={signUpForm.control}
+              name="password"
+              placeholder="Create a password"
+              secureTextEntry
+              autoComplete="new-password"
+              editable={true}
+              selectTextOnFocus={true}
+              key={`signup-password-${authStep}`}
             />
           </View>
+
+          <View className="mb-4">
+            <Text className="text-xs text-gray-600 text-center leading-relaxed">
+              By continuing, you agree to our{' '}
+              <Text 
+                className="underline" 
+                onPress={openTerms}
+              >
+                Terms of Service
+              </Text>
+              {' '}and{' '}
+              <Text 
+                className="underline" 
+                onPress={openPrivacy}
+              >
+                Privacy Policy
+              </Text>
+            </Text>
+          </View>
+
+          <AuthButton
+            title={isLoading ? 'Creating account...' : 'Create Account'}
+            onPress={signUpForm.handleSubmit(handleSignUp)}
+            disabled={isLoading}
+            loading={isLoading}
+            loadingText="Creating account..."
+          />
         </View>
-      </KeyboardAvoidingView>
+      </AuthContainer>
     )
   }
 
   // Verification step
   if (authStep === 'verify') {
     return (
-      <KeyboardAvoidingView 
-        className="flex-1 bg-gray-50"
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <View className="flex-1 justify-center px-6">
-          <View className="max-w-sm mx-auto w-full">
-            <AuthBackButton onPress={goBack} />
-            
-            <AuthHeader
-              title="Verify your email"
-              subtitle={`We sent a verification code to ${userEmail}`}
+      <AuthContainer>
+        <View className="w-full">
+          <AuthBackButton onPress={goBack} />
+          
+          <AuthHeader
+            title="Verify your email"
+            subtitle={`We sent a verification code to ${userEmail}`}
+          />
+
+          <View className="mb-4">
+            <FormInput
+              control={verificationForm.control}
+              name="code"
+              placeholder="Enter verification code"
+              keyboardType="number-pad"
+              autoFocus
+              maxLength={6}
+              autoComplete="one-time-code"
             />
+          </View>
 
-            <View className="mb-4">
-              <FormInput
-                control={verificationForm.control}
-                name="code"
-                placeholder="Enter verification code"
-                keyboardType="number-pad"
-                autoFocus
-                maxLength={6}
-                autoComplete="one-time-code"
-              />
-            </View>
+          <AuthButton
+            title={isLoading ? 'Verifying...' : 'Verify Email'}
+            onPress={verificationForm.handleSubmit(handleVerification)}
+            disabled={isLoading}
+            loading={isLoading}
+            loadingText="Verifying..."
+          />
 
-            <AuthButton
-              title={isLoading ? 'Verifying...' : 'Verify Email'}
-              onPress={verificationForm.handleSubmit(handleVerification)}
+          <View className="flex-row justify-center">
+            <Text className="text-gray-600 text-sm">Didn&apos;t receive a code? </Text>
+            <TouchableOpacity
+              onPress={() => signUp?.prepareEmailAddressVerification({ strategy: 'email_code' })}
               disabled={isLoading}
-              loading={isLoading}
-              loadingText="Verifying..."
-            />
-
-            <View className="flex-row justify-center">
-              <Text className="text-gray-600 text-sm">Didn&apos;t receive a code? </Text>
-              <TouchableOpacity
-                onPress={() => signUp?.prepareEmailAddressVerification({ strategy: 'email_code' })}
-                disabled={isLoading}
-              >
-                <Text className="text-sm font-semibold">Resend code</Text>
-              </TouchableOpacity>
-            </View>
+            >
+              <Text className="text-sm font-semibold">Resend code</Text>
+            </TouchableOpacity>
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </AuthContainer>
     )
   }
 
