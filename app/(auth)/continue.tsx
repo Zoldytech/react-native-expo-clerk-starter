@@ -1,10 +1,11 @@
+import React, { useEffect, useState } from 'react'
+import { Alert, Text, TouchableOpacity, View } from 'react-native'
+
 import { useSignIn, useSignUp } from '@clerk/clerk-expo'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
-import React, { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Alert, Text, TouchableOpacity, View } from 'react-native'
 import { z } from 'zod'
 
 import FormInput from '@/components/FormInput'
@@ -15,6 +16,18 @@ import AuthContainer from './_components/AuthContainer'
 import AuthHeader from './_components/AuthHeader'
 import AuthLink from './_components/AuthLink'
 import SocialAuth from './_components/SocialAuth'
+
+// Error classification constants for better maintainability
+const ERROR_CODES_USER_NOT_FOUND = [
+  'form_identifier_not_found',
+  'form_identifier_exists',
+] as const
+
+const ERROR_MESSAGES_USER_NOT_FOUND = [
+  'not found',
+  'no account',
+  'invalid',
+] as const
 
 // Email validation schema
 const emailSchema = z.object({
@@ -65,7 +78,8 @@ export default function ContinueWithAuth() {
         showTitle: true,
         enableBarCollapsing: false,
       })
-    } catch (error) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_: unknown) {
       // Silently handle error
     }
   }
@@ -79,7 +93,8 @@ export default function ContinueWithAuth() {
         showTitle: true,
         enableBarCollapsing: false,
       })
-    } catch (error) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_: unknown) {
       // Silently handle error
     }
   }
@@ -130,11 +145,8 @@ export default function ContinueWithAuth() {
     } catch (error: any) {
       if (error.errors && Array.isArray(error.errors)) {
         const userNotFound = error.errors.some((err: any) => 
-          err.code === 'form_identifier_not_found' || 
-          err.code === 'form_identifier_exists' ||
-          err.message?.toLowerCase().includes('not found') ||
-          err.message?.toLowerCase().includes('no account') ||
-          err.message?.toLowerCase().includes('invalid')
+          ERROR_CODES_USER_NOT_FOUND.includes(err.code) || 
+          ERROR_MESSAGES_USER_NOT_FOUND.some((msg) => err.message?.toLowerCase().includes(msg))
         )
         
         if (userNotFound) {
@@ -175,7 +187,8 @@ export default function ContinueWithAuth() {
         signUpForm.setValue('password', '')
         setAuthStep('signup')
       }
-    } catch (error) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_: unknown) {
       Alert.alert(
         'Error',
         'Something went wrong. Please try again.'
@@ -269,7 +282,8 @@ export default function ContinueWithAuth() {
       } else {
         verificationForm.setError('code', { message: 'Verification failed. Please try again.' })
       }
-    } catch (error: any) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_: unknown) {
       verificationForm.setError('code', { message: 'Invalid verification code. Please try again.' })
     } finally {
       setIsLoading(false)
@@ -507,4 +521,4 @@ export default function ContinueWithAuth() {
   }
 
   return null
-} 
+}

@@ -1,21 +1,30 @@
-import * as AuthSession from 'expo-auth-session'
-import * as WebBrowser from 'expo-web-browser'
 import React, { useState } from 'react'
-import { Alert, Modal, Text, TouchableOpacity, View } from 'react-native'
+import { ActivityIndicator, Alert, Image, Modal, Text, TouchableOpacity, View } from 'react-native'
 
-import { useUser } from '@clerk/clerk-expo'
+import { isClerkAPIResponseError, useUser } from '@clerk/clerk-expo'
 import { FontAwesome } from '@expo/vector-icons'
 import { zodResolver } from '@hookform/resolvers/zod'
+import * as ImagePicker from 'expo-image-picker'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 import FormInput from '@/components/FormInput'
-import ConnectedAccounts from './components/ConnectedAccounts'
-import EmailManagement from './components/EmailManagement'
-import PhoneManagement from './components/PhoneManagement'
-import ProfileHeader from './components/ProfileHeader'
 
-interface ProfileSectionProps {
+// Profile update validation schema
+const profileUpdateSchema = z.object({
+  firstName: z.string().min(1, 'First name is required').max(50, 'First name too long'),
+  lastName: z.string().min(1, 'Last name is required').max(50, 'Last name too long'),
+  username: z.string()
+    .min(3, 'Username must be at least 3 characters')
+    .max(30, 'Username must be less than 30 characters')
+    .regex(/^[a-zA-Z0-9_-]+$/, 'Username can only contain letters, numbers, underscores, and hyphens')
+    .optional()
+    .or(z.literal('')),
+})
+
+type ProfileUpdateFields = z.infer<typeof profileUpdateSchema>
+
+interface ProfileHeaderProps {
   user: {
     id: string
     emailAddresses: {
@@ -24,535 +33,308 @@ interface ProfileSectionProps {
       verification?: { status: string }
     }[]
     primaryEmailAddressId?: string | null
-    phoneNumbers?: {
-      id: string
-      phoneNumber: string
-      verification?: { status: string }
-    }[]
-    primaryPhoneNumberId?: string | null
-    externalAccounts?: {
-      id: string
-      provider: string
-      emailAddress?: string
-      username?: string
-    }[]
     firstName?: string
     lastName?: string
     fullName?: string
     username?: string
     imageUrl?: string
   }
+  onProfileUpdated?: () => void
 }
 
-// Email validation schema
-const emailSchema = z.object({
-  email: z.string({ message: 'Email is required' }).email('Please enter a valid email address'),
-})
-
-// Email verification schema
-const emailVerificationSchema = z.object({
-  code: z.string({ message: 'Verification code is required' }).min(6, 'Code must be 6 digits').max(6, 'Code must be 6 digits'),
-})
-
-// Phone validation schema  
-const phoneSchema = z.object({
-  phone: z.string({ message: 'Phone is required' }).min(1, 'Phone number is required'),
-})
-
-type EmailFields = z.infer<typeof emailSchema>
-type EmailVerificationFields = z.infer<typeof emailVerificationSchema>
-type PhoneFields = z.infer<typeof phoneSchema>
-
-export default function ProfileSection({ user }: ProfileSectionProps) {
+export default function ProfileHeader({ user, onProfileUpdated }: ProfileHeaderProps) {
   const { user: clerkUser } = useUser()
-  const [showAddEmailModal, setShowAddEmailModal] = useState(false)
-  const [showEmailVerificationModal, setShowEmailVerificationModal] = useState(false)
-  const [showAddPhoneModal, setShowAddPhoneModal] = useState(false)
-  const [showConnectModal, setShowConnectModal] = useState(false)
-  const [isAddingEmail, setIsAddingEmail] = useState(false)
-  const [isVerifyingEmail, setIsVerifyingEmail] = useState(false)
-  const [isAddingPhone, setIsAddingPhone] = useState(false)
-  const [isConnecting, setIsConnecting] = useState(false)
-  const [pendingEmailVerification, setPendingEmailVerification] = useState<any>(null)
-  const [pendingEmailAddress, setPendingEmailAddress] = useState('')
-
-  // Get connected providers to hide them from connect options
-  const connectedProviders = user.externalAccounts?.map(account => account.provider) || []
-  
-  // Define available providers
-  const availableProviders = [
-    { id: 'google', name: 'Google', icon: 'google', color: '#4285F4', description: 'Connect your Google account' },
-    { id: 'apple', name: 'Apple', icon: 'apple', color: '#000000', description: 'Connect your Apple ID' },
-  ]
-  
-  // Filter out already connected providers
-  const unconnectedProviders = availableProviders.filter(
-    provider => !connectedProviders.includes(provider.id)
-  )
+  const [isUpdating, setIsUpdating] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
 
   const {
-    control: emailControl,
-    handleSubmit: handleEmailSubmit,
-    reset: resetEmail,
-    formState: { errors: emailErrors },
-  } = useForm<EmailFields>({
-    resolver: zodResolver(emailSchema),
-    defaultValues: { email: '' },
+    control,
+    handleSubmit,
+    reset,
+  } = useForm<ProfileUpdateFields>({
+    resolver: zodResolver(profileUpdateSchema),
+    defaultValues: {
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      username: user.username || '',
+    },
   })
 
-  const {
-    control: emailVerificationControl,
-    handleSubmit: handleEmailVerificationSubmit,
-    reset: resetEmailVerification,
-    formState: { errors: emailVerificationErrors },
-  } = useForm<EmailVerificationFields>({
-    resolver: zodResolver(emailVerificationSchema),
-    defaultValues: { code: '' },
-  })
-
-  const {
-    control: phoneControl,
-    handleSubmit: handlePhoneSubmit,
-    reset: resetPhone,
-    formState: { errors: phoneErrors },
-  } = useForm<PhoneFields>({
-    resolver: zodResolver(phoneSchema),
-    defaultValues: { phone: '' },
-  })
-
-  const showAddEmailOptions = () => {
-    resetEmail()
-    setShowAddEmailModal(true)
+  const handleUpdateProfile = () => {
+    // Reset form with current user data
+    reset({
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      username: user.username || '',
+    })
+    setShowEditModal(true)
   }
 
-  const handleAddEmail = async (data: EmailFields) => {
+  const handleProfileSubmit = async (data: ProfileUpdateFields) => {
     if (!clerkUser) return
 
-    setIsAddingEmail(true)
+    setIsUpdating(true)
     try {
-      // Create email address without setting as primary
-      const emailAddress = await clerkUser.createEmailAddress({ 
-        email: data.email,
-      })
-      
-      // Prepare verification
-      await emailAddress.prepareVerification({ strategy: 'email_code' })
-      
-      // Store pending verification info
-      setPendingEmailVerification(emailAddress)
-      setPendingEmailAddress(data.email)
-      
-      // Close add modal and open verification modal
-      setShowAddEmailModal(false)
-      resetEmail()
-      resetEmailVerification()
-      setShowEmailVerificationModal(true)
-      
-    } catch (error: any) {
-      console.error('Add email error:', error)
-      Alert.alert(
-        'Error',
-        error.errors?.[0]?.longMessage || 'Failed to add email address. Please try again.'
-      )
-    } finally {
-      setIsAddingEmail(false)
-    }
-  }
-
-  const handleEmailVerification = async (data: EmailVerificationFields) => {
-    if (!pendingEmailVerification) return
-
-    setIsVerifyingEmail(true)
-    try {
-      await pendingEmailVerification.attemptVerification({ code: data.code })
-      
-      Alert.alert(
-        'Email Verified',
-        'Your email address has been successfully verified!',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              setShowEmailVerificationModal(false)
-              setPendingEmailVerification(null)
-              setPendingEmailAddress('')
-              resetEmailVerification()
-            }
-          }
-        ]
-      )
-    } catch (error: any) {
-      console.error('Email verification error:', error)
-      Alert.alert(
-        'Verification Failed',
-        error.errors?.[0]?.longMessage || 'Invalid verification code. Please try again.'
-      )
-    } finally {
-      setIsVerifyingEmail(false)
-    }
-  }
-
-  const handleResendEmailVerification = async () => {
-    if (!pendingEmailVerification) return
-
-    try {
-      await pendingEmailVerification.prepareVerification({ strategy: 'email_code' })
-      Alert.alert('Code Sent', 'A new verification code has been sent to your email.')
-    } catch (error: any) {
-      console.error('Resend verification error:', error)
-      Alert.alert(
-        'Error',
-        'Failed to resend verification code. Please try again.'
-      )
-    }
-  }
-
-  const showAddPhoneOptions = () => {
-    resetPhone()
-    setShowAddPhoneModal(true)
-  }
-
-  const handleAddPhone = async (data: PhoneFields) => {
-    if (!clerkUser) return
-
-    // Basic phone validation
-    if (!/^\+?[\d\s\-\(\)]+$/.test(data.phone)) {
-      Alert.alert('Error', 'Please enter a valid phone number')
-      return
-    }
-
-    setIsAddingPhone(true)
-    try {
-      await clerkUser.createPhoneNumber({ phoneNumber: data.phone })
-      Alert.alert(
-        'Phone Added',
-        'Phone number added successfully. Please check your phone for verification.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              setShowAddPhoneModal(false)
-              resetPhone()
-            }
-          }
-        ]
-      )
-    } catch (error: any) {
-      console.error('Add phone error:', error)
-      Alert.alert(
-        'Error',
-        error.errors?.[0]?.longMessage || 'Failed to add phone number. Please try again.'
-      )
-    } finally {
-      setIsAddingPhone(false)
-    }
-  }
-
-  const showConnectAccountOptions = () => {
-    setShowConnectModal(true)
-  }
-
-  const handleConnectProvider = async (provider: 'google' | 'apple') => {
-    if (!clerkUser) return
-
-    setIsConnecting(true)
-    setShowConnectModal(false)
-
-    try {
-      const strategy = provider === 'google' ? 'oauth_google' : 'oauth_apple'
-      const redirectUri = AuthSession.makeRedirectUri()
-      
-      // Create external account for existing user (correct method for connecting accounts)
-      const externalAccount = await clerkUser.createExternalAccount({
-        strategy: strategy as any,
-        redirectUrl: redirectUri,
-      })
-
-      // Check if we need to complete OAuth flow in browser
-      if (externalAccount.verification?.externalVerificationRedirectURL) {
-        // Open OAuth flow in browser
-        const result = await WebBrowser.openAuthSessionAsync(
-          externalAccount.verification.externalVerificationRedirectURL.toString(),
-          redirectUri
-        )
-
-        if (result.type === 'success') {
-          // Wait a moment for Clerk to process the OAuth callback
-          await new Promise(resolve => setTimeout(resolve, 1000))
-          
-          // Reload user to get updated external accounts
-          await clerkUser.reload()
-          
-          // Verify the account was actually connected by checking if it appears in external accounts
-          const connectedAccount = clerkUser.externalAccounts.find(
-            account => account.provider === provider
-          )
-          
-          if (connectedAccount) {
-            Alert.alert(
-              'Account Connected',
-              `Your ${provider === 'google' ? 'Google' : 'Apple'} account has been connected successfully!`,
-              [{ text: 'OK' }]
-            )
-          } else {
-            // Connection didn't complete properly, clean up
-            console.log('Connection verification failed')
-            Alert.alert(
-              'Connection Failed',
-              `Failed to verify ${provider} account connection. Please try again.`,
-              [{ text: 'OK' }]
-            )
-          }
-        } else if (result.type === 'cancel') {
-          // User cancelled - remove the pending external account
-          try {
-            await externalAccount.destroy()
-          } catch (cleanupError) {
-            console.log('Cleanup error after cancellation:', cleanupError)
-          }
-          console.log('User cancelled OAuth flow')
-          // Don't show error for cancellation
-        } else {
-          // OAuth flow failed - clean up
-          try {
-            await externalAccount.destroy()
-          } catch (cleanupError) {
-            console.log('Cleanup error after failure:', cleanupError)
-          }
-          throw new Error('OAuth flow was dismissed or failed')
-        }
-      } else {
-        // Account connected immediately (rare case)
-        await clerkUser.reload()
-        Alert.alert(
-          'Account Connected',
-          `Your ${provider === 'google' ? 'Google' : 'Apple'} account has been connected successfully!`,
-          [{ text: 'OK' }]
-        )
+      // Prepare update data
+      const updateData: any = {
+        firstName: data.firstName,
+        lastName: data.lastName,
       }
-    } catch (error: any) {
-      console.error('Connect account error:', error)
+
+      // Only include username if it's provided and not empty
+      if (data.username && data.username.trim() !== '') {
+        updateData.username = data.username.trim()
+      }
+
+      await clerkUser.update(updateData)
       
-      // Handle specific error cases
+      Alert.alert(
+        'Success',
+        'Your profile has been updated successfully',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              setShowEditModal(false)
+            }
+          }
+        ]
+      )
+    } catch (error: any) {
+      console.error('Profile update error:', error)
+      
+      // Handle specific username errors
       if (error.errors && error.errors.length > 0) {
-        const firstError = error.errors[0]
+        const usernameError = error.errors.find((err: any) => 
+          err.code === 'form_username_invalid' || 
+          err.code === 'form_username_taken' ||
+          err.meta?.paramName === 'username'
+        )
         
-        if (firstError.code === 'external_account_exists') {
+        if (usernameError) {
           Alert.alert(
-            'Account Already Connected',
-            `This ${provider} account is already connected to another user or to your account.`,
-            [{ text: 'OK' }]
-          )
-        } else if (firstError.code === 'oauth_access_denied') {
-          Alert.alert(
-            'Access Denied',
-            `You denied access to your ${provider} account. Please try again and grant permission.`,
-            [{ text: 'OK' }]
+            'Username Error',
+            usernameError.longMessage || usernameError.message || 'This username is already taken or invalid. Please try a different one.'
           )
         } else {
           Alert.alert(
-            'Connection Failed',
-            firstError.longMessage || firstError.message || `Failed to connect ${provider} account.`,
-            [{ text: 'OK' }]
+            'Error',
+            error.errors[0].longMessage || 'Failed to update profile. Please try again.'
           )
         }
       } else {
         Alert.alert(
-          'Connection Failed',
-          `Failed to connect ${provider} account. Please try again.`,
-          [{ text: 'OK' }]
+          'Error',
+          'Failed to update profile. Please try again.'
         )
       }
     } finally {
-      setIsConnecting(false)
+      setIsUpdating(false)
     }
+  }
+
+  const handleAvatarPress = () => {
+    Alert.alert(
+      'Change Avatar',
+      'Choose an option',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Take Photo', onPress: () => openImagePicker('camera') },
+        { text: 'Choose from Library', onPress: () => openImagePicker('library') },
+      ]
+    )
+  }
+
+  const openImagePicker = async (source: 'camera' | 'library') => {
+    try {
+      // Request permissions
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please grant permission to access your photos.')
+        return
+      }
+
+      if (source === 'camera') {
+        const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync()
+        if (cameraStatus !== 'granted') {
+          Alert.alert('Permission Required', 'Please grant permission to access your camera.')
+          return
+        }
+      }
+
+      const result = source === 'camera' 
+        ? await ImagePicker.launchCameraAsync({
+            mediaTypes: "images",
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+          })
+        : await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: "images",
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+          })
+
+      if (!result.canceled && result.assets[0]) {
+        await handleUploadImage(result.assets[0].uri)
+      }
+    } catch (error) {
+      console.error('Image picker error:', error)
+      Alert.alert('Error', 'Failed to select image. Please try again.')
+    }
+  }
+
+  const handleUploadImage = async (imageUri: string) => {
+    if (!clerkUser) return
+
+    setIsUploadingAvatar(true)
+    try {
+      // Dynamically determine MIME type and file extension based on URI
+      const getImageTypeFromUri = (uri: string) => {
+        const extension = uri.split('.').pop()?.toLowerCase()
+        switch (extension) {
+          case 'png':
+            return { type: 'image/png', extension: '.png' }
+          case 'gif':
+            return { type: 'image/gif', extension: '.gif' }
+          case 'webp':
+            return { type: 'image/webp', extension: '.webp' }
+          case 'jpg':
+          case 'jpeg':
+          default:
+            return { type: 'image/jpeg', extension: '.jpg' }
+        }
+      }
+
+      const imageInfo = getImageTypeFromUri(imageUri)
+      const timestamp = Date.now()
+      
+      const fileInfo = {
+        uri: imageUri,
+        type: imageInfo.type,
+        name: `avatar_${timestamp}${imageInfo.extension}`,
+      }
+      
+      // Use the file object directly with Clerk
+      await clerkUser.setProfileImage({ file: fileInfo as unknown as File })
+      
+      Alert.alert('Success', 'Avatar updated successfully!')
+      onProfileUpdated?.()
+    } catch (error: unknown) {
+      if (isClerkAPIResponseError(error)) {
+        const message = error.errors?.[0]?.longMessage || 'Failed to update avatar'
+        Alert.alert('Error', message)
+      } else {
+        Alert.alert('Error', 'Failed to update avatar. Please try again.')
+      }
+    } finally {
+      setIsUploadingAvatar(false)
+    }
+  }
+
+  const getDisplayName = () => {
+    if (user.firstName && user.lastName) {
+      return `${user.firstName} ${user.lastName}`
+    }
+    if (user.firstName) {
+      return user.firstName
+    }
+    if (user.fullName) {
+      return user.fullName
+    }
+    return user.emailAddresses[0]?.emailAddress || 'User'
+  }
+
+  const getDisplayUsername = () => {
+    if (user.username) {
+      return `@${user.username}`
+    }
+    return null
   }
 
   return (
-    <View className="flex-1">
-      {/* Profile Header */}
-      <View className="bg-white border-b border-gray-200 px-6 py-6">
-        <Text className="text-xl font-semibold text-gray-900 mb-6">Profile details</Text>
-        <ProfileHeader user={user} />
-      </View>
-
-      {/* Email Addresses */}
-      <View className="bg-white border-b border-gray-200 px-6 py-6">
-        <View className="flex-row justify-between items-center mb-4">
-          <Text className="text-lg font-medium text-gray-900">Email addresses</Text>
-        </View>
-        
-        <EmailManagement user={user} />
-        
-        <TouchableOpacity
-          onPress={showAddEmailOptions}
-          className="flex-row items-center mt-4"
-        >
-          <FontAwesome name="plus" size={16} color="#374151" />
-          <Text className="text-gray-700 font-medium ml-2">Add email address</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Phone Numbers */}
-      <View className="bg-white border-b border-gray-200 px-6 py-6">
-        <View className="flex-row justify-between items-center mb-4">
-          <Text className="text-lg font-medium text-gray-900">Phone number</Text>
-        </View>
-        
-        <PhoneManagement user={user} />
-        
-        <TouchableOpacity
-          onPress={showAddPhoneOptions}
-          className="flex-row items-center mt-4"
-        >
-          <FontAwesome name="plus" size={16} color="#374151" />
-          <Text className="text-gray-700 font-medium ml-2">Add phone number</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Connected Accounts */}
-      <View className="bg-white border-b border-gray-200 px-6 py-6">
-        <View className="flex-row justify-between items-center mb-4">
-          <Text className="text-lg font-medium text-gray-900">Connected accounts</Text>
-        </View>
-        
-        <ConnectedAccounts user={user} />
-        
-        {/* Only show Connect account button if there are unconnected providers */}
-        {unconnectedProviders.length > 0 && (
-          <TouchableOpacity
-            onPress={showConnectAccountOptions}
-            className="flex-row items-center mt-4"
+    <>
+      <View className="flex-row items-center justify-between">
+        <View className="flex-row items-center flex-1">
+          {/* Avatar */}
+          <TouchableOpacity 
+            onPress={handleAvatarPress}
+            disabled={isUploadingAvatar}
+            className="relative"
           >
-            <FontAwesome name="plus" size={16} color="#374151" />
-            <Text className="text-gray-700 font-medium ml-2">Connect account</Text>
+            <Image 
+              source={{ uri: user.imageUrl }}
+              className="w-16 h-16 rounded-full"
+            />
+            
+            {/* Camera icon overlay */}
+            <View className={`absolute -bottom-1 -right-1 bg-white rounded-full p-2 border border-gray-200 ${
+              isUploadingAvatar ? 'opacity-50' : ''
+            }`}>
+              {isUploadingAvatar ? (
+                <ActivityIndicator size="small" color="#374151" />
+              ) : (
+                <FontAwesome name="camera" size={12} color="#374151" />
+              )}
+            </View>
+            
+            {isUploadingAvatar && (
+              <View className="absolute inset-0 bg-black bg-opacity-30 rounded-full items-center justify-center">
+                <ActivityIndicator size="large" color="white" />
+              </View>
+            )}
           </TouchableOpacity>
-        )}
+
+          {/* Name */}
+          <View className="ml-4 flex-1">
+            <Text className="text-lg font-semibold text-gray-900">
+              {getDisplayName()}
+            </Text>
+            {getDisplayUsername() && (
+              <Text className="text-sm text-gray-500 mb-1">
+                {getDisplayUsername()}
+              </Text>
+            )}
+            <Text className="text-sm text-gray-600">
+              {user.emailAddresses[0]?.emailAddress}
+            </Text>
+          </View>
+        </View>
+
+        {/* Update button */}
+        <TouchableOpacity
+          onPress={handleUpdateProfile}
+          disabled={isUpdating || isUploadingAvatar}
+          className="bg-black rounded-lg px-4 py-2"
+        >
+          <Text className="text-white font-medium">
+            {isUpdating ? 'Updating...' : 'Edit profile'}
+          </Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Bottom spacing */}
-      <View className="h-20" />
-
-      {/* Add Email Modal */}
+      {/* Edit Profile Modal */}
       <Modal
-        visible={showAddEmailModal}
+        visible={showEditModal}
         animationType="slide"
         presentationStyle="pageSheet"
       >
         <View className="flex-1 bg-gray-50">
           <View className="flex-row justify-between items-center p-4 border-b border-gray-200 bg-white">
-                         <TouchableOpacity onPress={() => setShowAddEmailModal(false)}>
-               <Text className="text-gray-700 font-medium">Cancel</Text>
-             </TouchableOpacity>
-             <Text className="text-lg font-semibold">Add Email</Text>
-             <TouchableOpacity 
-               onPress={handleEmailSubmit(handleAddEmail)}
-               disabled={isAddingEmail}
-             >
-               <Text className={`font-medium ${
-                 isAddingEmail ? 'text-gray-400' : 'text-gray-700'
-               }`}>
-                 {isAddingEmail ? 'Adding...' : 'Add'}
-               </Text>
-             </TouchableOpacity>
-          </View>
-
-          <View className="p-6">
-            <View className="mb-4">
-              <FormInput
-                control={emailControl}
-                name="email"
-                label="Email Address"
-                placeholder="Enter email address"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-              />
-            </View>
-            <Text className="text-gray-500 text-sm">
-              You&apos;ll be prompted to verify this email address immediately after adding it.
-            </Text>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Email Verification Modal */}
-      <Modal
-        visible={showEmailVerificationModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <View className="flex-1 bg-gray-50">
-          <View className="flex-row justify-between items-center p-4 border-b border-gray-200 bg-white">
-            <TouchableOpacity onPress={() => setShowEmailVerificationModal(false)}>
-              <Text className="text-gray-700 font-medium">Cancel</Text>
+            <TouchableOpacity onPress={() => setShowEditModal(false)}>
+              <Text className="text-blue-500 font-medium">Cancel</Text>
             </TouchableOpacity>
-            <Text className="text-lg font-semibold">Verify Email</Text>
+            <Text className="text-lg font-semibold">Edit Profile</Text>
             <TouchableOpacity 
-              onPress={handleEmailVerificationSubmit(handleEmailVerification)}
-              disabled={isVerifyingEmail}
+              onPress={handleSubmit(handleProfileSubmit)}
+              disabled={isUpdating}
             >
               <Text className={`font-medium ${
-                isVerifyingEmail ? 'text-gray-400' : 'text-gray-700'
+                isUpdating ? 'text-gray-400' : 'text-blue-500'
               }`}>
-                {isVerifyingEmail ? 'Verifying...' : 'Verify'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View className="p-6">
-            <Text className="text-gray-900 font-medium mb-2">
-              Check your email
-            </Text>
-            <Text className="text-gray-600 mb-6">
-              We&apos;ve sent a verification code to {pendingEmailAddress}. Enter the 6-digit code below.
-            </Text>
-
-            <View className="mb-6">
-              <FormInput
-                control={emailVerificationControl}
-                name="code"
-                label="Verification Code"
-                placeholder="Enter 6-digit code"
-                keyboardType="number-pad"
-                maxLength={6}
-                autoCapitalize="none"
-                autoComplete="one-time-code"
-              />
-            </View>
-
-            <TouchableOpacity 
-              onPress={handleResendEmailVerification}
-              className="items-center py-3"
-            >
-              <Text className="text-gray-700 font-medium">
-                Didn&apos;t receive the code? Resend
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Add Phone Modal */}
-      <Modal
-        visible={showAddPhoneModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <View className="flex-1 bg-gray-50">
-          <View className="flex-row justify-between items-center p-4 border-b border-gray-200 bg-white">
-            <TouchableOpacity onPress={() => setShowAddPhoneModal(false)}>
-              <Text className="text-gray-700 font-medium">Cancel</Text>
-            </TouchableOpacity>
-            <Text className="text-lg font-semibold">Add Phone</Text>
-            <TouchableOpacity 
-              onPress={handlePhoneSubmit(handleAddPhone)}
-              disabled={isAddingPhone}
-            >
-              <Text className={`font-medium ${
-                isAddingPhone ? 'text-gray-400' : 'text-gray-700'
-              }`}>
-                {isAddingPhone ? 'Adding...' : 'Add'}
+                {isUpdating ? 'Saving...' : 'Save'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -560,81 +342,43 @@ export default function ProfileSection({ user }: ProfileSectionProps) {
           <View className="p-6">
             <View className="mb-4">
               <FormInput
-                control={phoneControl}
-                name="phone"
-                label="Phone Number"
-                placeholder="Enter phone number"
-                keyboardType="phone-pad"
-                autoComplete="tel"
+                control={control}
+                name="firstName"
+                label="First Name"
+                placeholder="Enter your first name"
+                autoCapitalize="words"
+                autoComplete="given-name"
               />
             </View>
-            <Text className="text-gray-500 text-sm">
-              Include country code (e.g., +1 555-123-4567)
-            </Text>
+
+            <View className="mb-4">
+              <FormInput
+                control={control}
+                name="lastName"
+                label="Last Name"
+                placeholder="Enter your last name"
+                autoCapitalize="words"
+                autoComplete="family-name"
+              />
+            </View>
+
+            <View className="mb-4">
+              <FormInput
+                control={control}
+                name="username"
+                label="Username"
+                placeholder="Enter your username (optional)"
+                autoCapitalize="none"
+                autoComplete="username"
+                autoCorrect={false}
+              />
+              <Text className="text-gray-500 text-xs mt-1">
+                Username can only contain letters, numbers, underscores, and hyphens. Leave empty to remove username.
+              </Text>
+            </View>
           </View>
-                 </View>
-       </Modal>
-
-       {/* Connect Account Modal */}
-       <Modal
-         visible={showConnectModal}
-         animationType="slide"
-         presentationStyle="pageSheet"
-       >
-         <View className="flex-1 bg-gray-50">
-           <View className="flex-row justify-between items-center p-4 border-b border-gray-200 bg-white">
-             <TouchableOpacity onPress={() => setShowConnectModal(false)}>
-               <Text className="text-gray-700 font-medium">Cancel</Text>
-             </TouchableOpacity>
-             <Text className="text-lg font-semibold">Connect Account</Text>
-             <View className="w-16" />
-           </View>
-
-           <View className="p-6">
-             <Text className="text-gray-600 mb-6">
-               Choose a provider to connect to your account
-             </Text>
-
-             {/* Dynamically render unconnected providers */}
-             {unconnectedProviders.map((provider, index) => (
-               <TouchableOpacity
-                 key={provider.id}
-                 onPress={() => handleConnectProvider(provider.id as 'google' | 'apple')}
-                 disabled={isConnecting}
-                 className={`flex-row items-center p-4 bg-white rounded-lg border border-gray-200 ${
-                   index < unconnectedProviders.length - 1 ? 'mb-4' : ''
-                 } ${isConnecting ? 'opacity-50' : 'active:bg-gray-50'}`}
-               >
-                 <View className="w-8 h-8 items-center justify-center mr-4">
-                   <FontAwesome name={provider.icon as any} size={20} color={provider.color} />
-                 </View>
-                 <View className="flex-1">
-                   <Text className="text-gray-900 font-medium">{provider.name}</Text>
-                   <Text className="text-gray-600 text-sm">{provider.description}</Text>
-                 </View>
-                 <FontAwesome name="chevron-right" size={16} color="#9CA3AF" />
-               </TouchableOpacity>
-             ))}
-
-             {/* Show message if all providers are connected */}
-             {unconnectedProviders.length === 0 && (
-               <View className="items-center py-8">
-                 <FontAwesome name="check-circle" size={48} color="#10B981" />
-                 <Text className="text-gray-900 font-medium mt-4 mb-2">All Set!</Text>
-                 <Text className="text-gray-600 text-center">
-                   You&apos;ve connected all available account providers.
-                 </Text>
-               </View>
-             )}
-
-             {isConnecting && (
-               <View className="mt-6 items-center">
-                 <Text className="text-gray-600">Connecting account...</Text>
-               </View>
-             )}
-           </View>
-         </View>
-       </Modal>
-    </View>
+        </View>
+      </Modal>
+    </>
   )
 }
