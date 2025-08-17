@@ -282,6 +282,6 @@ MIT License - feel free to use this starter for any project.
 
 ---
 
-**Built with ❤️ using modern React Native practices**
+**Built with ❤️ by [Zoldytech](https://wwww.zoldytech.com)**
 
 *This starter saves you weeks of development time by providing a complete, production-ready authentication system with proper TypeScript integration and modern UI/UX patterns.*
